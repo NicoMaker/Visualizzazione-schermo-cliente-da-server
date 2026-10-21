@@ -70,9 +70,19 @@ function sameOrigin(req, res, next) {
   next();
 }
 
-/** Pannello host e relative API: solo dal PC su cui gira il server. */
+/**
+ * Pannello host e relative API.
+ * Accetta localhost/127.0.0.1/::1 (gestiti da auth.isLocalRequest) e anche
+ * l'IP locale della macchina, così il pannello è raggiungibile via LAN.
+ *
+ * ATTENZIONE: così chiunque sulla stessa rete può aprire /host.
+ * Se non ti serve, rimuovi i due controlli su net.localIP.
+ */
 function requireLocal(req, res, next) {
-  if (!auth.isLocalRequest(req)) return notFound(req, res);
+  const ip = auth.clientIp(req);
+  const isMachineIp =
+    ip === net.localIP || ip === `::ffff:${net.localIP}`;
+  if (!auth.isLocalRequest(req) && !isMachineIp) return notFound(req, res);
   next();
 }
 
