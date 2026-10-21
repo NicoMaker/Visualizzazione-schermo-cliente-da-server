@@ -28,7 +28,10 @@ function isLocalRequest(req) {
 }
 
 function clientIp(req) {
-  return ((req.socket && req.socket.remoteAddress) || "").replace(/^::ffff:/, "");
+  return ((req.socket && req.socket.remoteAddress) || "").replace(
+    /^::ffff:/,
+    "",
+  );
 }
 
 function safeEqual(a, b) {
@@ -77,7 +80,11 @@ function regenerateToken() {
   fs.mkdirSync(config.DATA_DIR, { recursive: true });
   fs.writeFileSync(
     TOKEN_FILE,
-    JSON.stringify({ token: accessToken, createdAt: new Date().toISOString() }, null, 2),
+    JSON.stringify(
+      { token: accessToken, createdAt: new Date().toISOString() },
+      null,
+      2,
+    ),
     { mode: 0o600 },
   );
   return accessToken;
@@ -85,7 +92,9 @@ function regenerateToken() {
 
 const getToken = () => accessToken;
 const checkToken = (candidate) =>
-  typeof candidate === "string" && accessToken !== null && safeEqual(candidate, accessToken);
+  typeof candidate === "string" &&
+  accessToken !== null &&
+  safeEqual(candidate, accessToken);
 
 /* ------------------------------------------------------------------ */
 /* OTP: 6 cifre, monouso, a scadenza                                  */
@@ -129,14 +138,16 @@ const attempts = new Map();
 
 function lockedFor(ip) {
   const a = attempts.get(ip);
-  if (a && a.lockedUntil > Date.now()) return Math.ceil((a.lockedUntil - Date.now()) / 1000);
+  if (a && a.lockedUntil > Date.now())
+    return Math.ceil((a.lockedUntil - Date.now()) / 1000);
   return 0;
 }
 
 function registerFail(ip) {
   const now = Date.now();
   let a = attempts.get(ip);
-  if (!a || now - a.first > FAIL_WINDOW_MS) a = { count: 0, first: now, lockedUntil: 0 };
+  if (!a || now - a.first > FAIL_WINDOW_MS)
+    a = { count: 0, first: now, lockedUntil: 0 };
   a.count += 1;
   if (a.count >= MAX_FAILS) {
     a.lockedUntil = now + LOCK_MS;
@@ -155,7 +166,8 @@ const sessions = new Map();
 const idleMs = () => config.SESSION_IDLE_MINUTES * 60 * 1000;
 
 function createSession(ip, userAgent) {
-  for (const id of [...sessions.keys()]) endSession(id, "sostituita da una nuova connessione");
+  for (const id of [...sessions.keys()])
+    endSession(id, "sostituita da una nuova connessione");
   const session = {
     id: crypto.randomBytes(32).toString("hex"),
     ip,

@@ -23,7 +23,10 @@ function archiveSession(session, reason) {
       motivo: reason,
     };
     fs.writeFileSync(
-      path.join(config.TRASH_DIR, `sessione-${stamp}-${session.id.slice(0, 8)}.json`),
+      path.join(
+        config.TRASH_DIR,
+        `sessione-${stamp}-${session.id.slice(0, 8)}.json`,
+      ),
       JSON.stringify(record, null, 2),
     );
   } catch (err) {
@@ -36,7 +39,10 @@ function purge() {
   try {
     for (const name of fs.readdirSync(config.TRASH_DIR)) {
       if (name === ".gitkeep") continue;
-      fs.rmSync(path.join(config.TRASH_DIR, name), { recursive: true, force: true });
+      fs.rmSync(path.join(config.TRASH_DIR, name), {
+        recursive: true,
+        force: true,
+      });
       removed += 1;
     }
   } catch (err) {

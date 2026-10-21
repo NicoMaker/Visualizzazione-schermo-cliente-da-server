@@ -50,13 +50,18 @@
     els.stop.hidden = !live;
     els.notes.hidden = live;
     els.icon.textContent = live ? "🟢" : "🖥️";
-    els.title.textContent = live ? "Stai condividendo lo schermo" : "Condividi il tuo schermo";
+    els.title.textContent = live
+      ? "Stai condividendo lo schermo"
+      : "Condividi il tuo schermo";
     els.lead.innerHTML = live
       ? "Il tecnico vede <strong>solo</strong> ciò che hai scelto di condividere. Non può controllare il tuo computer."
       : "Il tecnico potrà <strong>vedere</strong> lo schermo o la finestra che sceglierai tu. Non potrà muovere il mouse né usare la tastiera.";
 
     if (!live) {
-      status(hostPresent ? "Collegato al tecnico" : "Codice accettato", hostPresent ? "on" : "");
+      status(
+        hostPresent ? "Collegato al tecnico" : "Codice accettato",
+        hostPresent ? "on" : "",
+      );
     } else if (pc && pc.connectionState === "connected") {
       status("Il tecnico sta guardando il tuo schermo", "on");
     } else if (!hostPresent) {
@@ -110,13 +115,22 @@
     ws.onclose = (ev) => {
       if (leaving || ended) return;
       if (ev.code === 4001) {
-        return finish("Sessione terminata", `${ev.reason ? "Motivo: " + ev.reason + ". " : ""}La condivisione è stata chiusa.`);
+        return finish(
+          "Sessione terminata",
+          `${ev.reason ? "Motivo: " + ev.reason + ". " : ""}La condivisione è stata chiusa.`,
+        );
       }
       if (ev.code === 4002) {
-        return finish("Pagina aperta altrove", "Hai aperto questa pagina in un'altra scheda: usa quella.");
+        return finish(
+          "Pagina aperta altrove",
+          "Hai aperto questa pagina in un'altra scheda: usa quella.",
+        );
       }
       if (retries >= 8) {
-        return finish("Connessione persa", "Non riesco più a raggiungere il server. Riapri il link e inserisci un nuovo codice.");
+        return finish(
+          "Connessione persa",
+          "Non riesco più a raggiungere il server. Riapri il link e inserisci un nuovo codice.",
+        );
       }
       retries += 1;
       if (!stream) status("Riconnessione…", "");
@@ -187,13 +201,17 @@
     for (const track of stream.getTracks()) conn.addTrack(track, stream);
 
     conn.onicecandidate = (e) => {
-      if (e.candidate && pcId === id) send({ type: "signal", pc: id, data: { candidate: e.candidate } });
+      if (e.candidate && pcId === id)
+        send({ type: "signal", pc: id, data: { candidate: e.candidate } });
     };
 
     conn.onconnectionstatechange = () => {
       if (pc !== conn) return;
       renderSharing();
-      if (conn.connectionState === "failed" || conn.connectionState === "disconnected") {
+      if (
+        conn.connectionState === "failed" ||
+        conn.connectionState === "disconnected"
+      ) {
         scheduleRedial(conn.connectionState === "failed" ? 500 : 4000);
       } else if (conn.connectionState === "connected") {
         redials = 0;
@@ -213,10 +231,13 @@
 
   async function limitBitrate(conn) {
     try {
-      const sender = conn.getSenders().find((s) => s.track && s.track.kind === "video");
+      const sender = conn
+        .getSenders()
+        .find((s) => s.track && s.track.kind === "video");
       if (!sender) return;
       const params = sender.getParameters();
-      if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+      if (!params.encodings || !params.encodings.length)
+        params.encodings = [{}];
       params.encodings[0].maxBitrate = cfg.maxBitrate;
       params.encodings[0].maxFramerate = cfg.maxFps;
       params.degradationPreference = "maintain-resolution"; // il testo resta leggibile
@@ -247,7 +268,8 @@
       for (const c of pendingIce) await conn.addIceCandidate(c).catch(() => {});
       pendingIce = [];
     } else if (data.candidate) {
-      if (conn.remoteDescription) await conn.addIceCandidate(data.candidate).catch(() => {});
+      if (conn.remoteDescription)
+        await conn.addIceCandidate(data.candidate).catch(() => {});
       else pendingIce.push(data.candidate);
     }
   }
@@ -277,9 +299,14 @@
       stream = null;
       els.start.disabled = false;
       if (err && err.name === "NotAllowedError") {
-        message("Condivisione annullata. Premi di nuovo il pulsante e scegli cosa condividere.");
+        message(
+          "Condivisione annullata. Premi di nuovo il pulsante e scegli cosa condividere.",
+        );
       } else {
-        message("Non riesco ad avviare la condivisione: " + (err && err.message ? err.message : "errore sconosciuto"));
+        message(
+          "Non riesco ad avviare la condivisione: " +
+            (err && err.message ? err.message : "errore sconosciuto"),
+        );
       }
       return;
     }
@@ -322,7 +349,10 @@
       /* esco comunque */
     }
     if (ws) ws.close();
-    finish("Condivisione terminata", "Il tecnico non vede più il tuo schermo. Puoi chiudere questa pagina.");
+    finish(
+      "Condivisione terminata",
+      "Il tecnico non vede più il tuo schermo. Puoi chiudere questa pagina.",
+    );
   }
 
   /* ------------------------------------------------------------ */

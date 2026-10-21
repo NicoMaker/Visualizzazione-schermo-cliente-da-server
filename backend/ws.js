@@ -88,7 +88,8 @@ function onClient(ws, session) {
   clearTimeout(session.graceTimer);
   if (session.sockets.size) {
     session.sharing = false;
-    for (const old of session.sockets) safeClose(old, 4002, "aperta in un'altra scheda");
+    for (const old of session.sockets)
+      safeClose(old, 4002, "aperta in un'altra scheda");
     session.sockets.clear();
   }
   session.sockets.add(ws);
@@ -114,7 +115,8 @@ function onClient(ws, session) {
         pushHost();
         break;
       case "signal":
-        if (validSignal(msg)) send(hostWs, { type: "signal", pc: msg.pc, data: msg.data });
+        if (validSignal(msg))
+          send(hostWs, { type: "signal", pc: msg.pc, data: msg.data });
         break;
       default:
     }
@@ -126,7 +128,8 @@ function onClient(ws, session) {
     if (session.sockets.size === 0) {
       clearTimeout(session.graceTimer);
       session.graceTimer = setTimeout(() => {
-        if (session.sockets.size === 0) auth.endSession(session.id, "il cliente ha lasciato la pagina");
+        if (session.sockets.size === 0)
+          auth.endSession(session.id, "il cliente ha lasciato la pagina");
       }, GRACE_MS);
     }
   };
@@ -139,7 +142,8 @@ function onHost(ws) {
   limiter(ws);
   ws.isAlive = true;
 
-  if (hostWs && hostWs !== ws) safeClose(hostWs, 4002, "aperto in un'altra scheda");
+  if (hostWs && hostWs !== ws)
+    safeClose(hostWs, 4002, "aperto in un'altra scheda");
   hostWs = ws;
 
   send(ws, { type: "hello", ice: config.ICE_SERVERS });
@@ -183,7 +187,8 @@ function attachWebSocket(server) {
     const origin = req.headers.origin;
     if (origin) {
       try {
-        if (new URL(origin).host !== req.headers.host) return reject(403, "Forbidden");
+        if (new URL(origin).host !== req.headers.host)
+          return reject(403, "Forbidden");
       } catch {
         return reject(403, "Forbidden");
       }
@@ -193,7 +198,9 @@ function attachWebSocket(server) {
       const sid = auth.parseCookies(req.headers.cookie)[auth.COOKIE_NAME];
       const session = auth.getSession(sid);
       if (!session) return reject(401, "Unauthorized");
-      return wss.handleUpgrade(req, socket, head, (ws) => onClient(ws, session));
+      return wss.handleUpgrade(req, socket, head, (ws) =>
+        onClient(ws, session),
+      );
     }
 
     if (pathname === "/ws/host") {

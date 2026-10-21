@@ -27,12 +27,16 @@ app.use((req, res, next) => {
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "no-referrer");
   // display-capture: serve al cliente per condividere lo schermo
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), display-capture=(self)");
+  res.setHeader(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), display-capture=(self)",
+  );
   res.setHeader(
     "Content-Security-Policy",
     "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self'; script-src 'self'; connect-src 'self' ws: wss:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
   );
-  if (!req.path.startsWith("/static/")) res.setHeader("Cache-Control", "no-store");
+  if (!req.path.startsWith("/static/"))
+    res.setHeader("Cache-Control", "no-store");
   next();
 });
 
@@ -42,7 +46,9 @@ app.use("/static/js", express.static(config.JS_DIR));
 
 /** Invia una pagina HTML statica da frontend/html. */
 function page(res, name, status = 200) {
-  res.status(status).sendFile(path.join(config.HTML_DIR, name), { cacheControl: false });
+  res
+    .status(status)
+    .sendFile(path.join(config.HTML_DIR, name), { cacheControl: false });
 }
 
 /** Blocca richieste POST che non arrivano dalla nostra stessa pagina. */
@@ -50,12 +56,15 @@ function sameOrigin(req, res, next) {
   const origin = req.headers.origin;
   if (origin) {
     try {
-      if (new URL(origin).host !== req.headers.host) return res.status(403).json({ ok: false });
+      if (new URL(origin).host !== req.headers.host)
+        return res.status(403).json({ ok: false });
     } catch {
       return res.status(403).json({ ok: false });
     }
   }
-  if (!String(req.headers["content-type"] || "").startsWith("application/json")) {
+  if (
+    !String(req.headers["content-type"] || "").startsWith("application/json")
+  ) {
     return res.status(415).json({ ok: false });
   }
   next();
@@ -73,16 +82,23 @@ function notFound(req, res) {
 
 function cookieFlags(req) {
   const flags = ["Path=/", "HttpOnly", "SameSite=Strict"];
-  if (config.COOKIE_SECURE || (req.socket && req.socket.encrypted)) flags.push("Secure");
+  if (config.COOKIE_SECURE || (req.socket && req.socket.encrypted))
+    flags.push("Secure");
   return flags;
 }
 
 function setSessionCookie(req, res, id) {
-  res.setHeader("Set-Cookie", [`${auth.COOKIE_NAME}=${id}`, ...cookieFlags(req)].join("; "));
+  res.setHeader(
+    "Set-Cookie",
+    [`${auth.COOKIE_NAME}=${id}`, ...cookieFlags(req)].join("; "),
+  );
 }
 
 function clearSessionCookie(req, res) {
-  res.setHeader("Set-Cookie", [`${auth.COOKIE_NAME}=`, ...cookieFlags(req), "Max-Age=0"].join("; "));
+  res.setHeader(
+    "Set-Cookie",
+    [`${auth.COOKIE_NAME}=`, ...cookieFlags(req), "Max-Age=0"].join("; "),
+  );
 }
 
 const sessionFrom = (req) =>
@@ -138,14 +154,18 @@ app.post("/api/login", sameOrigin, (req, res) => {
     return res.status(404).json({ ok: false, error: "Link non valido." });
   }
   if (typeof otp !== "string" || !/^\d{6}$/.test(otp)) {
-    return res.status(400).json({ ok: false, error: "Inserisci le 6 cifre del codice." });
+    return res
+      .status(400)
+      .json({ ok: false, error: "Inserisci le 6 cifre del codice." });
   }
   if (!auth.verifyOtp(otp)) {
     auth.registerFail(ip);
     const locked = auth.lockedFor(ip);
     return res.status(401).json({
       ok: false,
-      error: locked ? `Troppi tentativi. Riprova tra ${locked} secondi.` : "Codice errato o scaduto.",
+      error: locked
+        ? `Troppi tentativi. Riprova tra ${locked} secondi.`
+        : "Codice errato o scaduto.",
       retryAfter: locked || undefined,
     });
   }
@@ -166,7 +186,8 @@ app.get("/share", (req, res) => {
 
 app.post("/api/logout", sameOrigin, (req, res) => {
   const session = sessionFrom(req);
-  if (session) auth.endSession(session.id, "il cliente ha interrotto la condivisione");
+  if (session)
+    auth.endSession(session.id, "il cliente ha interrotto la condivisione");
   clearSessionCookie(req, res);
   res.json({ ok: true });
 });
@@ -215,7 +236,12 @@ app.post("/api/host/otp", requireLocal, sameOrigin, (req, res) => {
 
 app.post("/api/host/link", requireLocal, sameOrigin, (req, res) => {
   if (config.ACCESS_TOKEN) {
-    return res.status(409).json({ ok: false, error: "Il link è fisso (ACCESS_TOKEN nel file .env)." });
+    return res
+      .status(409)
+      .json({
+        ok: false,
+        error: "Il link è fisso (ACCESS_TOKEN nel file .env).",
+      });
   }
   auth.regenerateToken();
   res.json({ ok: true });
@@ -307,7 +333,9 @@ async function start() {
     if (local) await listen(local, config.LOCAL_HTTP_PORT, "127.0.0.1");
   } catch (err) {
     if (err.code === "EADDRINUSE") {
-      console.error(`❌ La porta ${err.port || PORT} è già in uso. Cambia PORT (o LOCAL_HTTP_PORT) nel file .env`);
+      console.error(
+        `❌ La porta ${err.port || PORT} è già in uso. Cambia PORT (o LOCAL_HTTP_PORT) nel file .env`,
+      );
     } else {
       console.error("❌ Errore server:", err.message);
     }
@@ -323,20 +351,32 @@ async function start() {
   console.log(`🌐 IP Pubblico: ${scheme}://${net.publicIP}:${PORT}`);
   console.log(`🏠 IP Locale:   ${scheme}://${net.localIP}:${PORT}`);
   console.log(`\n--------------------------------------`);
-  console.log(`⏰ Cron cestino attivo: eliminazione automatica ogni notte alle 00:00`);
+  console.log(
+    `⏰ Cron cestino attivo: eliminazione automatica ogni notte alle 00:00`,
+  );
   console.log(`--------------------------------------`);
-  console.log(`\n🛡️  PANNELLO HOST (apri questo sul tuo PC, qui vedrai lo schermo del cliente):`);
+  console.log(
+    `\n🛡️  PANNELLO HOST (apri questo sul tuo PC, qui vedrai lo schermo del cliente):`,
+  );
   console.log(`   ${hostUrl}`);
   console.log(`\n🔗 Link da dare al cliente:`);
   if (links.public) console.log(`   Internet:    ${links.public}`);
   console.log(`   Rete locale: ${links.local}`);
-  console.log(`\n🔑 Codice OTP attuale: ${auth.currentOtp().code}  (cambia ogni ${config.OTP_TTL_SECONDS}s, lo trovi anche nel pannello host)`);
+  console.log(
+    `\n🔑 Codice OTP attuale: ${auth.currentOtp().code}  (cambia ogni ${config.OTP_TTL_SECONDS}s, lo trovi anche nel pannello host)`,
+  );
   if (selfSigned) {
-    console.log(`\n🔒 HTTPS con certificato autofirmato: al cliente il browser mostrerà un avviso,`);
-    console.log(`   deve scegliere "Avanzate → Procedi" (serve per poter condividere lo schermo).`);
+    console.log(
+      `\n🔒 HTTPS con certificato autofirmato: al cliente il browser mostrerà un avviso,`,
+    );
+    console.log(
+      `   deve scegliere "Avanzate → Procedi" (serve per poter condividere lo schermo).`,
+    );
   }
   if (!config.HTTPS) {
-    console.log(`\n⚠️  HTTPS disattivato: il cliente potrà condividere lo schermo solo se arriva da un indirizzo HTTPS`);
+    console.log(
+      `\n⚠️  HTTPS disattivato: il cliente potrà condividere lo schermo solo se arriva da un indirizzo HTTPS`,
+    );
     console.log(`   (reverse proxy/tunnel con PUBLIC_URL) o da localhost.`);
   }
   console.log(`\n⚠️  Condividi il link solo con chi si deve collegare.\n`);
@@ -352,7 +392,10 @@ async function start() {
 }
 
 process.on("unhandledRejection", (err) => {
-  console.error("⚠️  Errore non gestito:", err && err.message ? err.message : err);
+  console.error(
+    "⚠️  Errore non gestito:",
+    err && err.message ? err.message : err,
+  );
 });
 
 start();

@@ -79,6 +79,7 @@ Per **non far vedere nessun avviso** al cliente hai due strade:
 2. **Certificato vero**: dominio + Let's Encrypt (o reverse proxy Caddy/Nginx), poi `CERT_FILE` / `KEY_FILE` o `PUBLIC_URL`.
 
 ### Raggiungere il server da internet
+
 - Stessa rete (ufficio/casa): usa il link "Rete locale".
 - Da fuori: inoltra la porta `3000` sul router verso il tuo PC **oppure** usa un tunnel (consigliato).
 - Il video va direttamente da browser a browser (WebRTC). Con reti molto restrittive può servire un server TURN: imposta `TURN_URLS`, `TURN_USER`, `TURN_PASS`.
@@ -87,28 +88,28 @@ Per **non far vedere nessun avviso** al cliente hai due strade:
 
 ## Configurazione (`.env`)
 
-| Variabile | Default | Significato |
-|---|---|---|
-| `PORT` | `3000` | Porta del server (quella del cliente) |
-| `HTTPS` | `true` | HTTPS con certificato autofirmato automatico |
-| `CERT_FILE` / `KEY_FILE` | *(vuoto)* | Tuo certificato (niente avviso per il cliente) |
-| `LOCAL_HTTP_PORT` | `PORT+1` | Porta HTTP solo-locale per il pannello host (`0` = disattiva) |
-| `ACCESS_TOKEN` | *(vuoto)* | Link fisso (16-64 caratteri `A-Z a-z 0-9 - _`). Vuoto = generato e salvato in `backend/data/access.json` |
-| `PUBLIC_URL` | *(vuoto)* | Indirizzo pubblico (dominio/tunnel) da usare nel link |
-| `OTP_TTL_SECONDS` | `90` | Durata del codice OTP |
-| `SESSION_IDLE_MINUTES` | `30` | Minuti di inattività prima che la sessione scada |
-| `MAX_FPS` | `15` | Frame al secondo massimi (1-60) |
-| `MAX_BITRATE_KBPS` | `3000` | Bitrate massimo del video |
-| `STUN_URLS` | Google STUN | Server STUN (separati da virgola) |
-| `TURN_URLS`, `TURN_USER`, `TURN_PASS` | *(vuoto)* | Server TURN opzionale |
-| `COOKIE_SECURE` | `false` | `true` se usi un proxy HTTPS (con HTTPS integrato è automatico) |
-| `TZ` | `Europe/Rome` | Fuso orario del cron di pulizia |
+| Variabile                             | Default       | Significato                                                                                              |
+| ------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------- |
+| `PORT`                                | `3000`        | Porta del server (quella del cliente)                                                                    |
+| `HTTPS`                               | `true`        | HTTPS con certificato autofirmato automatico                                                             |
+| `CERT_FILE` / `KEY_FILE`              | _(vuoto)_     | Tuo certificato (niente avviso per il cliente)                                                           |
+| `LOCAL_HTTP_PORT`                     | `PORT+1`      | Porta HTTP solo-locale per il pannello host (`0` = disattiva)                                            |
+| `ACCESS_TOKEN`                        | _(vuoto)_     | Link fisso (16-64 caratteri `A-Z a-z 0-9 - _`). Vuoto = generato e salvato in `backend/data/access.json` |
+| `PUBLIC_URL`                          | _(vuoto)_     | Indirizzo pubblico (dominio/tunnel) da usare nel link                                                    |
+| `OTP_TTL_SECONDS`                     | `90`          | Durata del codice OTP                                                                                    |
+| `SESSION_IDLE_MINUTES`                | `30`          | Minuti di inattività prima che la sessione scada                                                         |
+| `MAX_FPS`                             | `15`          | Frame al secondo massimi (1-60)                                                                          |
+| `MAX_BITRATE_KBPS`                    | `3000`        | Bitrate massimo del video                                                                                |
+| `STUN_URLS`                           | Google STUN   | Server STUN (separati da virgola)                                                                        |
+| `TURN_URLS`, `TURN_USER`, `TURN_PASS` | _(vuoto)_     | Server TURN opzionale                                                                                    |
+| `COOKIE_SECURE`                       | `false`       | `true` se usi un proxy HTTPS (con HTTPS integrato è automatico)                                          |
+| `TZ`                                  | `Europe/Rome` | Fuso orario del cron di pulizia                                                                          |
 
 ---
 
 ## Sicurezza
 
-- **Due fattori**: serve il link segreto (48 caratteri casuali) *e* il codice OTP.
+- **Due fattori**: serve il link segreto (48 caratteri casuali) _e_ il codice OTP.
 - **OTP monouso**: dopo l'uso ne viene generato subito un altro; scade dopo `OTP_TTL_SECONDS` e cambia dopo 5 tentativi errati.
 - **Anti brute-force**: 5 errori dallo stesso IP → blocco di 5 minuti.
 - **Un cliente alla volta**: un nuovo accesso chiude il precedente.

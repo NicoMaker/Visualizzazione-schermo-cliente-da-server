@@ -93,9 +93,13 @@
 
   function describe(s) {
     if (!s) return "Nessuno è collegato.";
-    if (peer.connected === false) return "Il cliente ha lasciato la pagina (può ricaricarla)";
-    if (!s.sharing) return "Ha inserito il codice, in attesa che scelga cosa condividere";
-    return rtc.live ? "Sta condividendo lo schermo" : "Sta condividendo, collegamento in corso…";
+    if (peer.connected === false)
+      return "Il cliente ha lasciato la pagina (può ricaricarla)";
+    if (!s.sharing)
+      return "Ha inserito il codice, in attesa che scelga cosa condividere";
+    return rtc.live
+      ? "Sta condividendo lo schermo"
+      : "Sta condividendo, collegamento in corso…";
   }
 
   function render(next) {
@@ -103,7 +107,8 @@
 
     els.otpCode.textContent = state.otp.code;
     els.otpTimer.textContent = "Scade tra " + state.otp.remaining + " s";
-    els.otpBar.style.width = Math.round((state.otp.remaining / state.otp.ttl) * 100) + "%";
+    els.otpBar.style.width =
+      Math.round((state.otp.remaining / state.otp.ttl) * 100) + "%";
     els.otpBar.classList.toggle("low", state.otp.remaining <= 15);
 
     renderLinks(state.links);
@@ -114,7 +119,11 @@
     els.certNote.hidden = !state.selfSigned;
 
     const s = state.session;
-    els.badge.textContent = !s ? "In attesa" : rtc.live ? "● Schermo in diretta" : "● Cliente collegato";
+    els.badge.textContent = !s
+      ? "In attesa"
+      : rtc.live
+        ? "● Schermo in diretta"
+        : "● Cliente collegato";
     els.badge.classList.toggle("live", !!s);
     els.sessionEmpty.hidden = !!s;
     els.sessionBox.hidden = !s;
@@ -130,7 +139,9 @@
 
   async function refresh() {
     try {
-      const res = await fetch("/api/host/state", { credentials: "same-origin" });
+      const res = await fetch("/api/host/state", {
+        credentials: "same-origin",
+      });
       if (res.ok) render(await res.json());
     } catch {
       els.badge.textContent = "Server non raggiungibile";
@@ -203,12 +214,22 @@
         report.forEach((r) => {
           if (r.type !== "inbound-rtp" || r.kind !== "video") return;
           const now = performance.now();
-          const kbps = lastStatsAt ? Math.round(((r.bytesReceived - lastBytes) * 8) / (now - lastStatsAt)) : 0;
+          const kbps = lastStatsAt
+            ? Math.round(
+                ((r.bytesReceived - lastBytes) * 8) / (now - lastStatsAt),
+              )
+            : 0;
           lastBytes = r.bytesReceived;
           lastStatsAt = now;
-          const size = els.video.videoWidth ? `${els.video.videoWidth}×${els.video.videoHeight}` : "";
-          const fps = r.framesPerSecond ? `${Math.round(r.framesPerSecond)} fps` : "";
-          els.liveStats.textContent = [size, fps, kbps ? kbps + " kbps" : ""].filter(Boolean).join(" · ");
+          const size = els.video.videoWidth
+            ? `${els.video.videoWidth}×${els.video.videoHeight}`
+            : "";
+          const fps = r.framesPerSecond
+            ? `${Math.round(r.framesPerSecond)} fps`
+            : "";
+          els.liveStats.textContent = [size, fps, kbps ? kbps + " kbps" : ""]
+            .filter(Boolean)
+            .join(" · ");
         });
       } catch {
         /* statistiche non disponibili */
@@ -227,13 +248,17 @@
       els.video.play().catch(() => {});
     };
     pc.onicecandidate = (e) => {
-      if (e.candidate && rtc.pc === pc) send({ type: "signal", pc: msg.pc, data: { candidate: e.candidate } });
+      if (e.candidate && rtc.pc === pc)
+        send({ type: "signal", pc: msg.pc, data: { candidate: e.candidate } });
     };
     pc.onconnectionstatechange = () => {
       if (rtc.pc !== pc) return;
       if (pc.connectionState === "connected") {
         startStats(pc);
-      } else if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+      } else if (
+        pc.connectionState === "failed" ||
+        pc.connectionState === "closed"
+      ) {
         closePc();
       }
     };
@@ -250,7 +275,8 @@
     if (data.sdp && data.sdp.type === "offer") return onOffer(msg);
     if (!rtc.pc || msg.pc !== rtc.id) return;
     if (data.candidate) {
-      if (rtc.pc.remoteDescription) await rtc.pc.addIceCandidate(data.candidate).catch(() => {});
+      if (rtc.pc.remoteDescription)
+        await rtc.pc.addIceCandidate(data.candidate).catch(() => {});
       else rtc.pending.push(data.candidate);
     }
   }
@@ -316,7 +342,12 @@
   });
 
   els.linkNew.addEventListener("click", async () => {
-    if (!confirm("Rigenerando il link, quello vecchio smette di funzionare. Continuare?")) return;
+    if (
+      !confirm(
+        "Rigenerando il link, quello vecchio smette di funzionare. Continuare?",
+      )
+    )
+      return;
     const r = await post("/api/host/link");
     if (r.ok === false && r.error) alert(r.error);
     refresh();
