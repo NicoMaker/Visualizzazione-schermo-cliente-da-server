@@ -26,7 +26,6 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "no-referrer");
-  // display-capture: serve al cliente per condividere lo schermo
   res.setHeader(
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=(), display-capture=(self)",
@@ -44,14 +43,12 @@ app.use(express.json({ limit: "4kb" }));
 app.use("/static/css", express.static(config.CSS_DIR));
 app.use("/static/js", express.static(config.JS_DIR));
 
-/** Invia una pagina HTML statica da frontend/html. */
 function page(res, name, status = 200) {
   res
     .status(status)
     .sendFile(path.join(config.HTML_DIR, name), { cacheControl: false });
 }
 
-/** Blocca richieste POST che non arrivano dalla nostra stessa pagina. */
 function sameOrigin(req, res, next) {
   const origin = req.headers.origin;
   if (origin) {
@@ -71,18 +68,13 @@ function sameOrigin(req, res, next) {
 }
 
 /**
- * Pannello host e relative API.
- * Accetta localhost/127.0.0.1/::1 (gestiti da auth.isLocalRequest) e anche
- * l'IP locale della macchina, così il pannello è raggiungibile via LAN.
- *
- * ATTENZIONE: così chiunque sulla stessa rete può aprire /host.
- * Se non ti serve, rimuovi i due controlli su net.localIP.
+ * Pannello host e API: solo dal PC del server.
+ * auth.isLocalRequest accetta loopback e IP locale della macchina.
+ * NB: se vuoi limitare SOLO a localhost (e non all'IP LAN), sostituisci
+ * con un controllo su "127.0.0.1"/"::1" esplicito.
  */
 function requireLocal(req, res, next) {
-  const ip = auth.clientIp(req);
-  const isMachineIp =
-    ip === net.localIP || ip === `::ffff:${net.localIP}`;
-  if (!auth.isLocalRequest(req) && !isMachineIp) return notFound(req, res);
+  if (!auth.isLocalRequest(req)) return notFound(req, res);
   next();
 }
 
@@ -131,13 +123,12 @@ function buildLinks() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Lato CLIENTE: link segreto + OTP, poi condivisione dello schermo   */
+/* Lato CLIENTE                                                       */
 /* ------------------------------------------------------------------ */
 app.get("/", (req, res) => {
   page(res, "index.html");
 });
 
-// Pagina di inserimento OTP: raggiungibile solo con il link segreto
 app.get("/c/:token", (req, res) => {
   const ip = auth.clientIp(req);
   if (auth.lockedFor(ip)) return page(res, "429.html", 429);
@@ -188,7 +179,6 @@ app.post("/api/login", sameOrigin, (req, res) => {
   res.json({ ok: true, redirect: "/share" });
 });
 
-// Pagina di condivisione (richiede sessione)
 app.get("/share", (req, res) => {
   const session = sessionFrom(req);
   if (!session) return res.redirect("/");
@@ -205,7 +195,7 @@ app.post("/api/logout", sameOrigin, (req, res) => {
 });
 
 /* ------------------------------------------------------------------ */
-/* Lato HOST (solo dal PC del server): codice, link e schermo cliente */
+/* Lato HOST                                                          */
 /* ------------------------------------------------------------------ */
 app.get("/host", requireLocal, (req, res) => {
   page(res, "host.html");
@@ -248,12 +238,10 @@ app.post("/api/host/otp", requireLocal, sameOrigin, (req, res) => {
 
 app.post("/api/host/link", requireLocal, sameOrigin, (req, res) => {
   if (config.ACCESS_TOKEN) {
-    return res
-      .status(409)
-      .json({
-        ok: false,
-        error: "Il link è fisso (ACCESS_TOKEN nel file .env).",
-      });
+    return res.status(409).json({
+      ok: false,
+      error: "Il link è fisso (ACCESS_TOKEN nel file .env).",
+    });
   }
   auth.regenerateToken();
   res.json({ ok: true });
@@ -302,7 +290,6 @@ async function start() {
   net.localIP = getLocalIP();
   net.publicIP = await getPublicIP();
 
-  // Server principale (HTTPS di default: il browser lo richiede per condividere lo schermo)
   let main;
   let selfSigned = false;
   if (config.HTTPS) {
@@ -323,14 +310,13 @@ async function start() {
   }
   attachWebSocket(main);
 
-  // Con HTTPS: porta HTTP extra solo per questo PC, così il pannello host non mostra avvisi
+  // Con HTTPS: porta HTTP extra per il pannello host (niente avvisi browser)
   let local = null;
   if (config.HTTPS && config.LOCAL_HTTP_PORT) {
     local = http.createServer(app);
     attachWebSocket(local);
   }
 
-  // Cestino: svuotato ogni notte alle 00:00
   cron.schedule(
     "0 0 * * *",
     () => {
@@ -342,8 +328,8 @@ async function start() {
 
   try {
     await listen(main, PORT, "0.0.0.0");
-    // Il server HTTP locale ascolta su tutte le interfacce, così è
-    // raggiungibile sia da localhost che dall'IP della macchina.
+    // Il server HTTP locale ascolta su tutte le interfacce:
+    // raggiungibile da localhost E dall'IP della macchina (LAN).
     if (local) await listen(local, config.LOCAL_HTTP_PORT, "0.0.0.0");
   } catch (err) {
     if (err.code === "EADDRINUSE") {
@@ -356,7 +342,6 @@ async function start() {
     process.exit(1);
   }
 
-  // URL del pannello host: sia localhost che IP della macchina
   const hostUrls = local
     ? [
         `http://localhost:${config.LOCAL_HTTP_PORT}/host`,

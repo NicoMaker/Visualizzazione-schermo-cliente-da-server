@@ -204,6 +204,7 @@ function attachWebSocket(server) {
     }
 
     if (pathname === "/ws/host") {
+      // Stesso criterio di server.js: loopback O IP locale della macchina
       if (!auth.isLocalRequest(req)) return reject(404, "Not Found");
       return wss.handleUpgrade(req, socket, head, (ws) => onHost(ws));
     }

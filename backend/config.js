@@ -25,7 +25,6 @@ const token = (process.env.ACCESS_TOKEN || "").trim();
 const PORT = Math.round(num(process.env.PORT, 3002, 1, 65535));
 const HTTPS = bool(process.env.HTTPS, true);
 
-/** Server ICE per WebRTC: STUN di default, TURN opzionale (per reti molto restrittive). */
 function buildIceServers() {
   const servers = [];
   const stun = list(
@@ -57,7 +56,10 @@ module.exports = {
   HTTPS,
   CERT_FILE: (process.env.CERT_FILE || "").trim(),
   KEY_FILE: (process.env.KEY_FILE || "").trim(),
-  // Con HTTPS attivo, il pannello host è raggiungibile anche in HTTP semplice (solo loopback) senza avvisi del browser
+  // Con HTTPS attivo, il pannello host è raggiungibile anche in HTTP semplice
+  // (porta LOCAL_HTTP_PORT) senza avvisi del browser. Il server ascolta su
+  // 0.0.0.0, quindi risponde sia da localhost sia dall'IP della macchina.
+  // Esempio .env: LOCAL_HTTP_PORT=3003
   LOCAL_HTTP_PORT: HTTPS
     ? Math.round(num(process.env.LOCAL_HTTP_PORT, PORT + 1, 0, 65535))
     : 0,

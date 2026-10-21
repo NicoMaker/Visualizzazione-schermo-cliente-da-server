@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const EventEmitter = require("events");
+const os = require("os");
 const config = require("./config");
 
 const events = new EventEmitter();
@@ -12,19 +13,43 @@ const COOKIE_NAME = "rd_session";
 /* ------------------------------------------------------------------ */
 const LOOPBACK = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 
+/** Restituisce l'IP IPv4 locale della macchina (prima interfaccia non-loopback). */
+function localIPv4() {
+  const nets = os.networkInterfaces();
+  for (const list of Object.values(nets)) {
+    for (const net of list || []) {
+      if (net.family === "IPv4" && !net.internal) return net.address;
+    }
+  }
+  return null;
+}
+
 /**
- * True solo se la richiesta arriva davvero dal PC del server.
- * Se c'è un reverse proxy davanti (header X-Forwarded-*) NON è considerata locale.
+ * True se la richiesta arriva dal PC del server:
+ * - loopback (127.0.0.1 / ::1)
+ * - oppure l'IP IPv4/IPv6 della macchina (accesso via LAN dal PC stesso)
+ * Se c'è un reverse proxy davanti (header X-Forwarded-*) e l'IP NON è della
+ * macchina, la richiesta è considerata remota.
  */
 function isLocalRequest(req) {
-  const addr = req.socket && req.socket.remoteAddress;
+  const raw = (req.socket && req.socket.remoteAddress) || "";
+  const addr = raw.replace(/^::ffff:/, "");
+  const localIP = localIPv4();
+
+  const isLoopback = LOOPBACK.has(raw) || LOOPBACK.has(addr);
+  const isMachine =
+    !!localIP && (addr === localIP || raw === `::ffff:${localIP}`);
+
+  if (isLoopback || isMachine) return true;
+
+  // Non è un IP della macchina: se passa da un proxy, considerala remota
   const proxied =
     req.headers["x-forwarded-for"] ||
     req.headers["forwarded"] ||
     req.headers["x-real-ip"] ||
     req.headers["cf-connecting-ip"] ||
     req.headers["true-client-ip"];
-  return LOOPBACK.has(addr) && !proxied;
+  return false || !!proxied ? false : false;
 }
 
 function clientIp(req) {
