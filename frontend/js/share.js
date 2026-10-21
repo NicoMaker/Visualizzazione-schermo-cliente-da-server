@@ -13,6 +13,24 @@
     start: $("startBtn"),
     stop: $("stopBtn"),
     home: $("homeLink"),
+    ctl: $("ctl"),
+    ctlActive: $("ctlActive"),
+    ctlRevoke: $("ctlRevoke"),
+    ctlReq: $("ctlReq"),
+    ctlAllow: $("ctlAllow"),
+    ctlDeny: $("ctlDeny"),
+    ctlSetup: $("ctlSetup"),
+    ctlGetCode: $("ctlGetCode"),
+    ctlSteps: $("ctlSteps"),
+    ctlStepsWin: $("ctlStepsWin"),
+    ctlStepsNode: $("ctlStepsNode"),
+    ctlStepsNodeLabel: $("ctlStepsNodeLabel"),
+    ctlTtl: $("ctlTtl"),
+    ctlTtl2: $("ctlTtl2"),
+    ctlCmd: $("ctlCmd"),
+    ctlCode: $("ctlCode"),
+    ctlConnected: $("ctlConnected"),
+    ctlNeedScreen: $("ctlNeedScreen"),
   };
 
   let ws = null;
@@ -28,6 +46,20 @@
   let pendingIce = [];
   let redialTimer = null;
   let redials = 0;
+
+  // controllo remoto (facoltativo)
+  let selfSigned = false;
+  let surface = null; // "monitor" | "window" | "browser"
+  let ctl = { agent: false, control: "off" };
+  let agentCode = null;
+  let winAvailable = false;
+  fetch("/agent/windows-available")
+    .then((r) => (r.ok ? r.json() : { available: false }))
+    .then((j) => {
+      winAvailable = !!(j && j.available);
+      renderControl();
+    })
+    .catch(() => {});
 
   /* ------------------------------------------------------------ */
   /* Interfaccia                                                  */
@@ -54,8 +86,10 @@
       ? "Stai condividendo lo schermo"
       : "Condividi il tuo schermo";
     els.lead.innerHTML = live
-      ? "Il tecnico vede <strong>solo</strong> ciò che hai scelto di condividere. Non può controllare il tuo computer."
-      : "Il tecnico potrà <strong>vedere</strong> lo schermo o la finestra che sceglierai tu. Non potrà muovere il mouse né usare la tastiera.";
+      ? ctl.control === "on"
+        ? "Il tecnico vede il tuo schermo <strong>e sta usando mouse e tastiera</strong>. Puoi revocare il controllo quando vuoi."
+        : "Il tecnico vede <strong>solo</strong> ciò che hai scelto di condividere. Non può controllare il tuo computer senza il tuo consenso."
+      : "Il tecnico potrà <strong>vedere</strong> lo schermo o la finestra che sceglierai tu. Non potrà muovere il mouse né usare la tastiera, a meno che tu non lo consenta (opzione facoltativa).";
 
     if (!live) {
       status(
@@ -63,12 +97,54 @@
         hostPresent ? "on" : "",
       );
     } else if (pc && pc.connectionState === "connected") {
-      status("Il tecnico sta guardando il tuo schermo", "on");
+      status(
+        ctl.control === "on"
+          ? "Il tecnico sta controllando il tuo computer"
+          : "Il tecnico sta guardando il tuo schermo",
+        "on",
+      );
     } else if (!hostPresent) {
       status("Condivisione pronta, in attesa che il tecnico si colleghi…", "");
     } else {
       status("Collegamento con il tecnico in corso…", "");
     }
+    renderControl();
+  }
+
+  function renderControl() {
+    const live = !!stream && !ended;
+    els.ctl.hidden = !live;
+    if (!live) return;
+    const wholeScreen = surface === "monitor";
+    const on = ctl.control === "on";
+    const requested = ctl.control === "requested";
+
+    els.ctlActive.hidden = !on;
+    els.ctlReq.hidden = !requested;
+    els.ctlNeedScreen.hidden = wholeScreen;
+    els.ctlConnected.hidden = !(ctl.agent && !on && !requested);
+    els.ctlSetup.hidden = !wholeScreen || ctl.agent || on || requested;
+    els.ctlSteps.hidden = !agentCode || ctl.agent;
+    if (agentCode) {
+      els.ctlCode.textContent = agentCode.code;
+      const ttlMin = String(Math.round(agentCode.ttl / 60));
+      els.ctlTtl.textContent = ttlMin;
+      if (els.ctlTtl2) els.ctlTtl2.textContent = ttlMin;
+      els.ctlCmd.textContent =
+        `node agent.js --url ${location.origin} --code ${agentCode.code}` +
+        (selfSigned ? " --insecure" : "");
+      if (els.ctlStepsWin) els.ctlStepsWin.hidden = !winAvailable;
+      if (els.ctlStepsNode) {
+        els.ctlStepsNode.open = !winAvailable;
+        if (els.ctlStepsNodeLabel)
+          els.ctlStepsNodeLabel.textContent = winAvailable
+            ? "Non usi Windows, o preferisci il metodo manuale?"
+            : "Come avviarlo (serve Node.js)";
+      }
+    }
+    document.title = on
+      ? "🔴 Controllo remoto attivo · Desktop Remoto"
+      : "Condividi lo schermo · Desktop Remoto";
   }
 
   function finish(title, text) {
@@ -83,6 +159,8 @@
     els.start.hidden = true;
     els.stop.hidden = true;
     els.home.hidden = false;
+    els.ctl.hidden = true;
+    document.title = "Condivisione terminata · Desktop Remoto";
     message("");
   }
 
@@ -99,7 +177,7 @@
 
     ws.onopen = () => {
       retries = 0;
-      if (stream) send({ type: "sharing", active: true }); // dopo una riconnessione
+      if (stream) send({ type: "sharing", active: true, surface }); // dopo una riconnessione
     };
 
     ws.onmessage = (ev) => {
@@ -146,10 +224,32 @@
           maxFps: msg.maxFps || cfg.maxFps,
           maxBitrate: msg.maxBitrate || cfg.maxBitrate,
         };
+        selfSigned = !!msg.selfSigned;
         setHostPresent(!!msg.hostPresent);
         break;
       case "peer":
+        ctl = { agent: !!msg.agent, control: msg.control || "off" };
+        if (ctl.agent) agentCode = null;
         setHostPresent(!!msg.hostPresent);
+        break;
+      case "agent-code":
+        agentCode = { code: msg.code, ttl: msg.ttl || 300 };
+        els.ctlGetCode.disabled = false;
+        renderControl();
+        break;
+      case "control-request":
+        ctl.control = "requested";
+        renderControl();
+        try {
+          window.focus();
+        } catch {
+          /* non sempre permesso */
+        }
+        break;
+      case "control-ended":
+        ctl.control = "off";
+        if (msg.reason) message("Controllo remoto terminato: " + msg.reason, "ok");
+        renderSharing();
         break;
       case "signal":
         handleSignal(msg).catch(() => {});
@@ -316,7 +416,9 @@
     if ("contentHint" in track) track.contentHint = "detail"; // privilegia la nitidezza del testo
     track.onended = () => stopSharingOnly(); // il cliente ha premuto "Interrompi" nel browser
 
-    send({ type: "sharing", active: true });
+    const settings = track.getSettings ? track.getSettings() : {};
+    surface = settings.displaySurface || null;
+    send({ type: "sharing", active: true, surface });
     renderSharing();
     if (hostPresent) {
       redials = 0;
@@ -328,6 +430,9 @@
   function stopSharingOnly() {
     stopStream();
     closePc();
+    surface = null;
+    agentCode = null;
+    ctl.control = "off";
     send({ type: "sharing", active: false });
     message("Hai interrotto la condivisione. Se vuoi, puoi riavviarla.", "ok");
     renderSharing();
@@ -359,6 +464,23 @@
   /* Avvio                                                        */
   /* ------------------------------------------------------------ */
   els.start.addEventListener("click", startShare);
+  els.ctlGetCode.addEventListener("click", () => {
+    els.ctlGetCode.disabled = true;
+    send({ type: "agent-code" });
+  });
+  els.ctlAllow.addEventListener("click", () =>
+    send({ type: "control-answer", allow: true }),
+  );
+  els.ctlDeny.addEventListener("click", () => {
+    send({ type: "control-answer", allow: false });
+    ctl.control = "off";
+    renderControl();
+  });
+  els.ctlRevoke.addEventListener("click", () => {
+    send({ type: "control-stop" });
+    ctl.control = "off";
+    renderSharing();
+  });
   els.stop.addEventListener("click", leave);
   window.addEventListener("beforeunload", () => {
     leaving = true;

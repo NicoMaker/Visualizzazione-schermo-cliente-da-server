@@ -18,7 +18,8 @@
       <h1 id="title">Condividi il tuo schermo</h1>
       <p class="muted" id="lead">
         Il tecnico potrà <strong>vedere</strong> lo schermo o la finestra che
-        sceglierai tu. Non potrà muovere il mouse né usare la tastiera.
+        sceglierai tu. Non potrà muovere il mouse né usare la tastiera, a meno
+        che tu non lo consenta (opzione facoltativa).
       </p>
 
       <div class="status-line" id="statusLine" hidden>
@@ -40,6 +41,108 @@
           schermo.
         </li>
       </ul>
+
+      <!-- Controllo remoto (facoltativo, sempre con il tuo consenso) -->
+      <section class="ctl" id="ctl" hidden>
+        <div class="ctl-active" id="ctlActive" hidden>
+          <strong>🔴 Il tecnico sta controllando il tuo computer</strong>
+          <p class="muted">
+            Vede ciò che fai e può usare mouse e tastiera. Puoi fermarlo quando
+            vuoi.
+          </p>
+          <button class="btn danger block" id="ctlRevoke" type="button">
+            Revoca il controllo ora
+          </button>
+        </div>
+
+        <div class="ctl-req" id="ctlReq" hidden>
+          <strong>Il tecnico chiede di controllare mouse e tastiera</strong>
+          <p class="muted">
+            Se accetti potrà usare questo computer finché non lo fermi tu.
+            Accetta solo se stai parlando con lui in questo momento.
+          </p>
+          <div class="ctl-btns">
+            <button class="btn primary" id="ctlAllow" type="button">
+              Consenti
+            </button>
+            <button class="btn" id="ctlDeny" type="button">Rifiuta</button>
+          </div>
+        </div>
+
+        <div class="ctl-setup" id="ctlSetup" hidden>
+          <strong>Controllo remoto (facoltativo)</strong>
+          <p class="muted" id="ctlHelp">
+            Se vuoi che il tecnico possa anche usare mouse e tastiera, serve un
+            piccolo programma da avviare tu su questo computer.
+          </p>
+          <button class="btn block" id="ctlGetCode" type="button">
+            Voglio dare il controllo al tecnico
+          </button>
+          <div class="ctl-steps" id="ctlSteps" hidden>
+            <div class="ctl-code" id="ctlCode">--------</div>
+
+            <ol id="ctlStepsWin" hidden>
+              <li>
+                Scarica e apri
+                <a href="/agent/windows.zip" download>il programma (.zip)</a>.
+                Non si installa nulla.
+              </li>
+              <li>
+                Estrai la cartella e apri <strong>Avvia.bat</strong> con un
+                doppio clic (solo Windows).
+              </li>
+              <li>
+                Windows può mostrare un avviso «editore sconosciuto»: scegli
+                <strong>Ulteriori informazioni → Esegui comunque</strong>.
+              </li>
+              <li>
+                Scrivi il codice qui sopra quando te lo chiede (valido
+                <span id="ctlTtl">5</span> minuti) e premi Invio.
+              </li>
+              <li>
+                Poi qui comparirà «Programma collegato». Il tecnico non potrà
+                fare nulla finché non premi <strong>Consenti</strong>.
+              </li>
+            </ol>
+
+            <details id="ctlStepsNode">
+              <summary id="ctlStepsNodeLabel">
+                Non usi Windows, o preferisci il metodo manuale?
+              </summary>
+              <ol>
+                <li>
+                  Scarica
+                  <a href="/agent/agent.js" download>agent.js</a> e
+                  <a href="/agent/package.json" download>package.json</a> in
+                  una cartella (serve
+                  <a href="https://nodejs.org" target="_blank" rel="noopener"
+                    >Node.js</a
+                  >).
+                </li>
+                <li>Nella cartella esegui <code>npm install</code>.</li>
+                <li>
+                  Avvia (codice valido <span id="ctlTtl2">5</span> minuti):
+                  <code class="ctl-cmd" id="ctlCmd"></code>
+                </li>
+                <li>
+                  Poi qui comparirà «Programma collegato». Il tecnico non
+                  potrà fare nulla finché non premi <strong>Consenti</strong>.
+                </li>
+              </ol>
+            </details>
+          </div>
+        </div>
+
+        <p class="ctl-ok" id="ctlConnected" hidden>
+          ✅ Programma di controllo collegato. Il tecnico non può usarlo senza
+          il tuo consenso.
+        </p>
+        <p class="msg warn" id="ctlNeedScreen" hidden>
+          Per il controllo remoto devi condividere
+          <strong>l'intero schermo</strong> (non una finestra o una scheda).
+          Interrompi e riavvia la condivisione scegliendo «Schermo intero».
+        </p>
+      </section>
 
       <p id="msg" class="msg" role="alert" hidden></p>
 

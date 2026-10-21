@@ -1,6 +1,7 @@
 const http = require("http");
 const https = require("https");
 const path = require("path");
+const fs = require("fs");
 const express = require("express");
 const cron = require("node-cron");
 
@@ -115,6 +116,34 @@ function buildLinks() {
 
 app.get("/", (req, res) => {
   page(res, "index.html");
+});
+
+/* Programma di controllo remoto (facoltativo): scaricabile solo dal cliente già autenticato. */
+const AGENT_DIR = path.join(__dirname, "..", "agent");
+const AGENT_FILES = new Set(["agent.js", "package.json"]);
+
+/*
+ * Pacchetto Windows pronto all'uso (agent.exe + libreria nativa in uno zip),
+ * generato una volta dal tecnico con `node agent/build-win.js` (vedi README).
+ * Se il file non esiste, il pannello mostra solo le istruzioni Node.js.
+ * Queste due route hanno un percorso fisso e DEVONO stare prima di
+ * "/agent/:file" qui sotto, altrimenti Express le farebbe matchare lì
+ * (con :file = "windows-available" / "windows.zip") e restituirebbe sempre 404.
+ */
+const AGENT_WIN_ZIP = path.join(AGENT_DIR, "dist", "agente-windows.zip");
+app.get("/agent/windows-available", (req, res) => {
+  if (!sessionFrom(req)) return notFound(req, res);
+  res.json({ available: fs.existsSync(AGENT_WIN_ZIP) });
+});
+app.get("/agent/windows.zip", (req, res) => {
+  if (!sessionFrom(req) || !fs.existsSync(AGENT_WIN_ZIP)) return notFound(req, res);
+  res.download(AGENT_WIN_ZIP, "DesktopRemoto-Windows.zip");
+});
+
+app.get("/agent/:file", (req, res) => {
+  if (!sessionFrom(req) || !AGENT_FILES.has(req.params.file))
+    return notFound(req, res);
+  res.download(path.join(AGENT_DIR, req.params.file), req.params.file);
 });
 
 app.get("/c/:token", (req, res) => {

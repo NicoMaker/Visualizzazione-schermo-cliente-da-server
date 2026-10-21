@@ -7,7 +7,7 @@ Il PC su cui gira il server non viene mai mostrato a nessuno.
 - **Frontend**: HTML + CSS + JavaScript puri (`frontend/`)
 - Video in **WebRTC** direttamente dal browser del cliente al tuo (nessun programma da installare al cliente)
 - Il cliente **sceglie cosa condividere** (schermo intero, finestra o scheda) e può interrompere quando vuole
-- Solo **visualizzazione**: un sito web non può muovere il mouse né usare la tastiera di un altro PC
+- Di base solo **visualizzazione**. Il **controllo remoto** (mouse e tastiera) è **facoltativo**: richiede un piccolo programma (`agent/`) che il cliente avvia lui stesso e un consenso esplicito (vedi sotto)
 
 ---
 
@@ -107,6 +107,71 @@ Per **non far vedere nessun avviso** al cliente hai due strade:
 
 ---
 
+## 🖱️ Controllo remoto (facoltativo)
+
+Un sito web non può muovere il mouse di un altro PC, quindi per il controllo serve un piccolo programma
+**da avviare sul PC del cliente** (cartella `agent/`, Node.js + libreria `@nut-tree-fork/nut-js`).
+Il controllo parte **solo se il cliente fa tutti questi passaggi**:
+
+1. condivide **l'intero schermo** (non una finestra o una scheda);
+2. nella pagina web preme **«Voglio dare il controllo al tecnico»**: compare un **codice di 8 caratteri** (monouso, valido 5 minuti);
+3. **scarica e avvia il programma** sul proprio PC (due modi, vedi sotto), poi scrive il codice quando richiesto;
+4. il tecnico preme **«Richiedi controllo»** nel pannello host → al cliente compare la richiesta e deve premere **«Consenti»**.
+
+### Windows: un unico file, niente da installare
+
+Se hai generato il pacchetto Windows (vedi sotto), la pagina del cliente mostra un pulsante
+**«Scarica il programma (.zip)»** al posto delle istruzioni Node.js. Per il cliente il percorso diventa:
+scarica lo zip → estrae la cartella → doppio clic su `Avvia.bat` → scrive il codice. Niente Node.js,
+niente `npm install`, niente riga di comando da copiare. Resta un **doppio clic in più** rispetto a un
+singolo link (serve perché un sito web non può eseguire programmi da solo, per sicurezza del browser),
+ma non richiede competenze tecniche.
+
+Per generarlo (lo fai **tu, una volta sola**, non il cliente):
+
+```bash
+cd agent
+npm install
+node build-win.js https://TUO-INDIRIZZO-PUBBLICO:3000 --insecure   # --insecure solo col certificato autofirmato
+```
+
+Questo crea `agent/dist/agente-windows.zip`: il server lo serve automaticamente appena il file esiste
+(se manca, la pagina del cliente torna a mostrare solo le istruzioni Node.js qui sotto, senza errori).
+Passare l'indirizzo come argomento serve solo a **precompilarlo** nell'eseguibile, così il cliente deve
+scrivere solo il codice; se non lo passi, l'exe funziona lo stesso ma chiede anche l'indirizzo, come il
+programma Node.js.
+
+> Nota tecnica: l'eseguibile è generato con [`pkg`](https://github.com/yao-pkg/pkg) e include tutto
+> Node.js; la libreria che muove mouse e tastiera è nativa (non JavaScript) e per questo non può stare
+> dentro un singolo .exe compresso — è nella cartella `node_modules/` accanto a lui dentro lo zip. Non è
+> stato testato su Windows reale in questo ambiente di sviluppo (solo build e verifica del formato del
+> file): prima di darlo a un cliente, prova tu stesso il pacchetto su un PC Windows.
+
+### Mac, Linux, o se preferisci il metodo manuale
+
+3bis. scarica `agent.js` + `package.json` dalla pagina, esegue `npm install` e avvia
+   `node agent.js --url https://INDIRIZZO:3000 --code CODICE` (con certificato autofirmato serve anche `--insecure`; la pagina mostra già il comando giusto).
+
+Mentre il controllo è attivo:
+
+- la pagina del cliente mostra un riquadro rosso **«Il tecnico sta controllando il tuo computer»** con il pulsante **«Revoca il controllo ora»**;
+- il programma stampa **«CONTROLLO REMOTO ATTIVO»**; si ferma con **Q + Invio**, **Ctrl+C** o chiudendo la finestra;
+- il controllo si spegne da solo se il cliente smette di condividere, chiude la pagina, il tecnico si scollega o il programma si chiude;
+- il programma **non si installa, non parte da solo e non resta attivo** dopo la chiusura.
+
+Lato tecnico: nel pannello live compare il pulsante **Richiedi controllo**. A controllo attivo muovi/clicca sul video e,
+cliccando sull'area del video, anche la tastiera viene inviata (rotella inclusa).
+
+Note e limiti:
+
+- Il mouse viene mappato sullo **schermo principale** del cliente: se condivide un secondo monitor il pulsante resta disattivo (le proporzioni non coincidono).
+- Il server inoltra solo comandi validi (movimento, click, rotella, tasti) e solo a controllo attivo; qualsiasi altro messaggio viene scartato.
+- Tentativi errati del codice sono limitati come per l'OTP (5 errori → blocco 5 minuti).
+- **macOS**: il Terminale va abilitato in *Impostazioni → Privacy e sicurezza → Accessibilità*. **Linux**: funziona su sessioni X11; su Wayland il controllo può essere bloccato dal sistema.
+- Usa questa funzione solo con clienti che sanno cosa stai facendo e hanno dato il permesso.
+
+---
+
 ## Sicurezza
 
 - **Due fattori**: serve il link segreto (48 caratteri casuali) _e_ il codice OTP.
@@ -135,13 +200,18 @@ Un cron (`node-cron`) **svuota il cestino ogni notte alle 00:00**, quindi non re
 ```
 .
 ├── .env.example
+├── agent/            programma facoltativo per il controllo remoto (PC del cliente)
+│   ├── agent.js
+│   ├── package.json
+│   ├── build-win.js  genera agent/dist/agente-windows.zip (lo esegui tu una volta)
+│   └── dist/         pacchetto Windows generato (non versionato)
 ├── backend/
 │   ├── package.json
 │   ├── server.js     avvio, rotte HTTP/HTTPS, cron, log
 │   ├── config.js     lettura del file .env
 │   ├── tls.js        certificato HTTPS autofirmato
 │   ├── auth.js       link segreto, OTP, sessioni, anti brute-force
-│   ├── ws.js         signaling WebRTC (cliente ⇄ host)
+│   ├── ws.js         signaling WebRTC + controllo remoto (cliente ⇄ host ⇄ agent)
 │   ├── trash.js      cestino sessioni
 │   ├── network.js    IP locale e pubblico
 │   ├── data/         link e certificato salvati

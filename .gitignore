@@ -1,5 +1,6 @@
 node_modules/
 .env
+agent/dist/
 backend/data/*
 !backend/data/.gitkeep
 backend/trash/*

@@ -27,6 +27,8 @@
     sBrowser: $("sBrowser"),
     sSince: $("sSince"),
     kickBtn: $("kickBtn"),
+    ctlBtn: $("ctlBtn"),
+    ctlInfo: $("ctlInfo"),
   };
 
   let state = null; // ultimo stato dal server
@@ -170,7 +172,14 @@
   let ws = null;
   let retries = 0;
   let iceServers = [];
-  let peer = { connected: false, sharing: false };
+  let peer = {
+    connected: false,
+    sharing: false,
+    agent: false,
+    agentScreen: null,
+    surface: null,
+    control: "off",
+  };
   const rtc = { pc: null, id: null, pending: [], live: false };
   let queue = Promise.resolve(); // i messaggi di signaling vengono elaborati in ordine
   let statsTimer = null;
@@ -307,7 +316,15 @@
           iceServers = msg.ice || [];
           break;
         case "peer":
-          peer = { connected: !!msg.connected, sharing: !!msg.sharing };
+          peer = {
+            connected: !!msg.connected,
+            sharing: !!msg.sharing,
+            agent: !!msg.agent,
+            agentScreen: msg.agentScreen || null,
+            surface: msg.surface || null,
+            control: msg.control || "off",
+          };
+          renderControl();
           if (!peer.sharing || !peer.connected) {
             // Il cliente non condivide più (o è uscito): chiudo il collegamento video
             if (rtc.pc && !peer.sharing) closePc();
@@ -316,6 +333,11 @@
           break;
         case "signal":
           queue = queue.then(() => onSignal(msg)).catch(() => {});
+          break;
+        case "control-ended":
+          peer.control = "off";
+          renderControl();
+          if (msg.reason) notice("Controllo terminato: " + msg.reason);
           break;
         default:
       }
@@ -332,6 +354,160 @@
       setTimeout(connect, Math.min(1000 * retries, 5000));
     };
   }
+
+  /* ------------------------------------------------------------ */
+  /* Controllo remoto (solo dopo il consenso del cliente)         */
+  /* ------------------------------------------------------------ */
+  let noticeTimer = null;
+  function notice(text) {
+    els.ctlInfo.textContent = text;
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(renderControl, 6000);
+  }
+
+  /** Il video deve avere lo stesso rapporto dello schermo del cliente, altrimenti i click finiscono nel punto sbagliato. */
+  function screenMatches() {
+    const s = peer.agentScreen;
+    if (!s || !els.video.videoWidth) return true;
+    const a = els.video.videoWidth / els.video.videoHeight;
+    const b = s.w / s.h;
+    return Math.abs(a / b - 1) < 0.03;
+  }
+
+  function renderControl() {
+    clearTimeout(noticeTimer);
+    const on = peer.control === "on";
+    els.stage.classList.toggle("controlling", on);
+    els.ctlBtn.classList.toggle("danger", on);
+
+    if (on) {
+      els.ctlBtn.disabled = false;
+      els.ctlBtn.textContent = "Termina controllo";
+      els.ctlInfo.textContent = "🔴 Stai controllando il cliente (clicca sullo schermo per usare la tastiera)";
+    } else if (peer.control === "requested") {
+      els.ctlBtn.disabled = true;
+      els.ctlBtn.textContent = "In attesa del cliente…";
+      els.ctlInfo.textContent = "Il cliente deve premere «Consenti»";
+    } else if (!peer.agent) {
+      els.ctlBtn.disabled = true;
+      els.ctlBtn.textContent = "Controllo non disponibile";
+      els.ctlInfo.textContent =
+        "Il cliente non ha avviato il programma di controllo";
+    } else if (peer.surface !== "monitor") {
+      els.ctlBtn.disabled = true;
+      els.ctlBtn.textContent = "Controllo non disponibile";
+      els.ctlInfo.textContent = "Il cliente deve condividere l'intero schermo";
+    } else if (!screenMatches()) {
+      els.ctlBtn.disabled = true;
+      els.ctlBtn.textContent = "Controllo non disponibile";
+      els.ctlInfo.textContent =
+        "Il cliente non sta condividendo lo schermo principale";
+    } else {
+      els.ctlBtn.disabled = false;
+      els.ctlBtn.textContent = "Richiedi controllo";
+      els.ctlInfo.textContent = "";
+    }
+  }
+
+  els.ctlBtn.addEventListener("click", () => {
+    if (peer.control === "on") {
+      send({ type: "control-stop" });
+      peer.control = "off";
+      renderControl();
+    } else {
+      send({ type: "control-request" });
+    }
+  });
+
+  /** Coordinate 0..1 dentro l'immagine reale (tiene conto di eventuali bande nere). */
+  function norm(e) {
+    const r = els.video.getBoundingClientRect();
+    const vw = els.video.videoWidth;
+    const vh = els.video.videoHeight;
+    if (!vw || !vh || !r.width || !r.height) return null;
+    const scale = Math.min(r.width / vw, r.height / vh);
+    const w = vw * scale;
+    const h = vh * scale;
+    const left = r.left + (r.width - w) / 2;
+    const top = r.top + (r.height - h) / 2;
+    const x = (e.clientX - left) / w;
+    const y = (e.clientY - top) / h;
+    if (x < 0 || x > 1 || y < 0 || y > 1) return null;
+    return { x, y };
+  }
+
+  const controlling = () => peer.control === "on";
+  const sendInput = (ev) => send({ type: "input", ev });
+
+  // movimento mouse e rotella: al massimo una volta per frame (evita di inondare il server)
+  let pendingMove = null;
+  let pendingWheel = null;
+  let raf = 0;
+  function flush() {
+    raf = 0;
+    if (!controlling()) {
+      pendingMove = pendingWheel = null;
+      return;
+    }
+    if (pendingMove) sendInput({ k: "move", ...pendingMove });
+    if (pendingWheel) sendInput({ k: "wheel", ...pendingWheel });
+    pendingMove = pendingWheel = null;
+  }
+  const schedule = () => {
+    if (!raf) raf = requestAnimationFrame(flush);
+  };
+
+  els.video.addEventListener("mousemove", (e) => {
+    if (!controlling()) return;
+    const p = norm(e);
+    if (p) {
+      pendingMove = p;
+      schedule();
+    }
+  });
+  for (const type of ["mousedown", "mouseup"]) {
+    els.video.addEventListener(type, (e) => {
+      if (!controlling()) return;
+      const p = norm(e);
+      if (!p || e.button > 2) return;
+      e.preventDefault();
+      els.stage.focus({ preventScroll: true });
+      sendInput({ k: type === "mousedown" ? "down" : "up", ...p, b: e.button });
+    });
+  }
+  els.video.addEventListener("contextmenu", (e) => {
+    if (controlling()) e.preventDefault();
+  });
+  els.video.addEventListener(
+    "wheel",
+    (e) => {
+      if (!controlling()) return;
+      e.preventDefault();
+      const f = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? 400 : 1;
+      pendingWheel = {
+        dx: (pendingWheel ? pendingWheel.dx : 0) + e.deltaX * f,
+        dy: (pendingWheel ? pendingWheel.dy : 0) + e.deltaY * f,
+      };
+      schedule();
+    },
+    { passive: false },
+  );
+
+  // tastiera: inviata solo se l'area dello schermo del cliente ha il focus
+  for (const type of ["keydown", "keyup"]) {
+    els.stage.addEventListener(type, (e) => {
+      if (!controlling()) return;
+      e.preventDefault();
+      sendInput({
+        k: "key",
+        d: type === "keydown",
+        code: e.code,
+        key: e.key,
+      });
+    });
+  }
+  els.video.addEventListener("loadedmetadata", renderControl);
+  els.video.addEventListener("resize", renderControl);
 
   /* ------------------------------------------------------------ */
   /* Azioni                                                       */
