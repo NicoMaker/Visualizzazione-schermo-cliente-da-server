@@ -107,14 +107,16 @@ const sessionFrom = (req) =>
 function buildLinks() {
   const t = auth.getToken();
   const base = config.PUBLIC_URL;
+  const localUrl = `${scheme}://${net.localIP}:${PORT}/c/${t}`;
+  const localhostUrl = `${scheme}://localhost:${PORT}/c/${t}`;
   return {
     public: base
       ? `${base}/c/${t}`
       : net.publicIP !== "non disponibile"
         ? `${scheme}://${net.publicIP}:${PORT}/c/${t}`
-        : null,
-    local: `${scheme}://${net.localIP}:${PORT}/c/${t}`,
-    localhost: `${scheme}://localhost:${PORT}/c/${t}`,
+        : localUrl,
+    local: localUrl,
+    localhost: localhostUrl,
   };
 }
 
@@ -330,7 +332,9 @@ async function start() {
 
   try {
     await listen(main, PORT, "0.0.0.0");
-    if (local) await listen(local, config.LOCAL_HTTP_PORT, "127.0.0.1");
+    // Il server HTTP locale ascolta su tutte le interfacce, così è
+    // raggiungibile sia da localhost che dall'IP della macchina.
+    if (local) await listen(local, config.LOCAL_HTTP_PORT, "0.0.0.0");
   } catch (err) {
     if (err.code === "EADDRINUSE") {
       console.error(
@@ -342,9 +346,16 @@ async function start() {
     process.exit(1);
   }
 
-  const hostUrl = local
-    ? `http://localhost:${config.LOCAL_HTTP_PORT}/host`
-    : `${scheme}://localhost:${PORT}/host`;
+  // URL del pannello host: sia localhost che IP della macchina
+  const hostUrls = local
+    ? [
+        `http://localhost:${config.LOCAL_HTTP_PORT}/host`,
+        `http://${net.localIP}:${config.LOCAL_HTTP_PORT}/host`,
+      ]
+    : [
+        `${scheme}://localhost:${PORT}/host`,
+        `${scheme}://${net.localIP}:${PORT}/host`,
+      ];
   const links = buildLinks();
 
   console.log(`\n🚀 Server avviato con successo!`);
@@ -358,10 +369,11 @@ async function start() {
   console.log(
     `\n🛡️  PANNELLO HOST (apri questo sul tuo PC, qui vedrai lo schermo del cliente):`,
   );
-  console.log(`   ${hostUrl}`);
+  for (const u of hostUrls) console.log(`   ${u}`);
   console.log(`\n🔗 Link da dare al cliente:`);
   if (links.public) console.log(`   Internet:    ${links.public}`);
   console.log(`   Rete locale: ${links.local}`);
+  console.log(`   Localhost:   ${links.localhost}`);
   console.log(
     `\n🔑 Codice OTP attuale: ${auth.currentOtp().code}  (cambia ogni ${config.OTP_TTL_SECONDS}s, lo trovi anche nel pannello host)`,
   );

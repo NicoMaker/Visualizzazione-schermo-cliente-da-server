@@ -22,7 +22,7 @@ const list = (value) =>
     .filter(Boolean);
 
 const token = (process.env.ACCESS_TOKEN || "").trim();
-const PORT = Math.round(num(process.env.PORT, 3000, 1, 65535));
+const PORT = Math.round(num(process.env.PORT, 3002, 1, 65535));
 const HTTPS = bool(process.env.HTTPS, true);
 
 /** Server ICE per WebRTC: STUN di default, TURN opzionale (per reti molto restrittive). */
