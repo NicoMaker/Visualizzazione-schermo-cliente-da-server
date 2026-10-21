@@ -17,9 +17,6 @@ const app = express();
 const net = { publicIP: "non disponibile", localIP: "127.0.0.1" };
 const scheme = config.HTTPS ? "https" : "http";
 
-/* ------------------------------------------------------------------ */
-/* Impostazioni base e sicurezza                                      */
-/* ------------------------------------------------------------------ */
 app.disable("x-powered-by");
 
 app.use((req, res, next) => {
@@ -59,20 +56,12 @@ function sameOrigin(req, res, next) {
       return res.status(403).json({ ok: false });
     }
   }
-  if (
-    !String(req.headers["content-type"] || "").startsWith("application/json")
-  ) {
+  if (!String(req.headers["content-type"] || "").startsWith("application/json")) {
     return res.status(415).json({ ok: false });
   }
   next();
 }
 
-/**
- * Pannello host e API: solo dal PC del server.
- * auth.isLocalRequest accetta loopback e IP locale della macchina.
- * NB: se vuoi limitare SOLO a localhost (e non all'IP LAN), sostituisci
- * con un controllo su "127.0.0.1"/"::1" esplicito.
- */
 function requireLocal(req, res, next) {
   if (!auth.isLocalRequest(req)) return notFound(req, res);
   next();
@@ -122,9 +111,6 @@ function buildLinks() {
   };
 }
 
-/* ------------------------------------------------------------------ */
-/* Lato CLIENTE                                                       */
-/* ------------------------------------------------------------------ */
 app.get("/", (req, res) => {
   page(res, "index.html");
 });
@@ -157,9 +143,7 @@ app.post("/api/login", sameOrigin, (req, res) => {
     return res.status(404).json({ ok: false, error: "Link non valido." });
   }
   if (typeof otp !== "string" || !/^\d{6}$/.test(otp)) {
-    return res
-      .status(400)
-      .json({ ok: false, error: "Inserisci le 6 cifre del codice." });
+    return res.status(400).json({ ok: false, error: "Inserisci le 6 cifre del codice." });
   }
   if (!auth.verifyOtp(otp)) {
     auth.registerFail(ip);
@@ -188,15 +172,11 @@ app.get("/share", (req, res) => {
 
 app.post("/api/logout", sameOrigin, (req, res) => {
   const session = sessionFrom(req);
-  if (session)
-    auth.endSession(session.id, "il cliente ha interrotto la condivisione");
+  if (session) auth.endSession(session.id, "il cliente ha interrotto la condivisione");
   clearSessionCookie(req, res);
   res.json({ ok: true });
 });
 
-/* ------------------------------------------------------------------ */
-/* Lato HOST                                                          */
-/* ------------------------------------------------------------------ */
 app.get("/host", requireLocal, (req, res) => {
   page(res, "host.html");
 });
@@ -247,9 +227,6 @@ app.post("/api/host/link", requireLocal, sameOrigin, (req, res) => {
   res.json({ ok: true });
 });
 
-/* ------------------------------------------------------------------ */
-/* Errori                                                             */
-/* ------------------------------------------------------------------ */
 app.use(notFound);
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
@@ -260,9 +237,6 @@ app.use((err, req, res, next) => {
   page(res, "500.html", 500);
 });
 
-/* ------------------------------------------------------------------ */
-/* Eventi di sessione                                                 */
-/* ------------------------------------------------------------------ */
 auth.events.on("start", (s) => {
   console.log(`🔓 Un cliente si è collegato da ${s.ip}`);
 });
@@ -271,9 +245,6 @@ auth.events.on("end", ({ session, reason }) => {
   console.log(`🔒 Sessione di ${session.ip} chiusa (${reason})`);
 });
 
-/* ------------------------------------------------------------------ */
-/* Avvio                                                              */
-/* ------------------------------------------------------------------ */
 function listen(server, port, host) {
   return new Promise((resolve, reject) => {
     server.once("error", reject);
@@ -310,7 +281,6 @@ async function start() {
   }
   attachWebSocket(main);
 
-  // Con HTTPS: porta HTTP extra per il pannello host (niente avvisi browser)
   let local = null;
   if (config.HTTPS && config.LOCAL_HTTP_PORT) {
     local = http.createServer(app);
@@ -328,8 +298,6 @@ async function start() {
 
   try {
     await listen(main, PORT, "0.0.0.0");
-    // Il server HTTP locale ascolta su tutte le interfacce:
-    // raggiungibile da localhost E dall'IP della macchina (LAN).
     if (local) await listen(local, config.LOCAL_HTTP_PORT, "0.0.0.0");
   } catch (err) {
     if (err.code === "EADDRINUSE") {
@@ -357,13 +325,9 @@ async function start() {
   console.log(`🌐 IP Pubblico: ${scheme}://${net.publicIP}:${PORT}`);
   console.log(`🏠 IP Locale:   ${scheme}://${net.localIP}:${PORT}`);
   console.log(`\n--------------------------------------`);
-  console.log(
-    `⏰ Cron cestino attivo: eliminazione automatica ogni notte alle 00:00`,
-  );
+  console.log(`⏰ Cron cestino attivo: eliminazione automatica ogni notte alle 00:00`);
   console.log(`--------------------------------------`);
-  console.log(
-    `\n🛡️  PANNELLO HOST (apri questo sul tuo PC, qui vedrai lo schermo del cliente):`,
-  );
+  console.log(`\n🛡️  PANNELLO HOST (apri questo sul tuo PC, qui vedrai lo schermo del cliente):`);
   for (const u of hostUrls) console.log(`   ${u}`);
   console.log(`\n🔗 Link da dare al cliente:`);
   if (links.public) console.log(`   Internet:    ${links.public}`);
@@ -399,10 +363,7 @@ async function start() {
 }
 
 process.on("unhandledRejection", (err) => {
-  console.error(
-    "⚠️  Errore non gestito:",
-    err && err.message ? err.message : err,
-  );
+  console.error("⚠️  Errore non gestito:", err && err.message ? err.message : err);
 });
 
 start();

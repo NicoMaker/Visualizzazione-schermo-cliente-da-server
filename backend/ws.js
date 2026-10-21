@@ -2,14 +2,7 @@ const { WebSocketServer } = require("ws");
 const config = require("./config");
 const auth = require("./auth");
 
-/**
- * Canale di signaling WebRTC.
- *   /ws/share → il CLIENTE (sessione valida): condivide lo schermo
- *   /ws/host  → l'HOST (solo dal PC del server): guarda lo schermo del cliente
- * Il video NON passa dal server: viaggia in WebRTC direttamente tra cliente e host.
- * Qui passano solo i messaggi per stabilire la connessione (offerta, risposta, candidati ICE).
- */
-const GRACE_MS = 20_000; // tempo concesso al cliente per ricaricare la pagina prima di chiudere la sessione
+const GRACE_MS = 20_000;
 const MAX_MSG_PER_SEC = 200;
 
 const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
@@ -33,7 +26,6 @@ function clientSocket(session) {
   return null;
 }
 
-/* ---------- stato verso host e cliente ---------- */
 function pushHost() {
   const s = auth.activeSession();
   send(hostWs, {
@@ -48,7 +40,6 @@ function pushClient() {
   send(clientSocket(s), { type: "peer", hostPresent: isOpen(hostWs) });
 }
 
-/* ---------- limite di messaggi ---------- */
 function limiter(ws) {
   let windowStart = Date.now();
   let count = 0;
@@ -78,13 +69,11 @@ const validSignal = (msg) =>
   msg.data &&
   typeof msg.data === "object";
 
-/* ---------- cliente ---------- */
 function onClient(ws, session) {
   limiter(ws);
   ws.session = session;
   ws.isAlive = true;
 
-  // Una sola scheda per volta: la precedente viene chiusa
   clearTimeout(session.graceTimer);
   if (session.sockets.size) {
     session.sharing = false;
@@ -123,7 +112,7 @@ function onClient(ws, session) {
   });
 
   const cleanup = () => {
-    if (!session.sockets.delete(ws)) return; // già sostituito da un'altra scheda
+    if (!session.sockets.delete(ws)) return;
     pushHost();
     if (session.sockets.size === 0) {
       clearTimeout(session.graceTimer);
@@ -137,7 +126,6 @@ function onClient(ws, session) {
   ws.on("error", cleanup);
 }
 
-/* ---------- host ---------- */
 function onHost(ws) {
   limiter(ws);
   ws.isAlive = true;
@@ -148,7 +136,7 @@ function onHost(ws) {
 
   send(ws, { type: "hello", ice: config.ICE_SERVERS });
   pushHost();
-  pushClient(); // il cliente (se sta già condividendo) invia subito l'offerta
+  pushClient();
 
   ws.on("message", (raw, isBinary) => {
     if (!ws.allow()) return;
@@ -168,7 +156,6 @@ function onHost(ws) {
   ws.on("error", cleanup);
 }
 
-/* ---------- upgrade HTTP → WebSocket ---------- */
 function attachWebSocket(server) {
   server.on("upgrade", (req, socket, head) => {
     const reject = (code, text) => {
@@ -183,7 +170,6 @@ function attachWebSocket(server) {
       return reject(400, "Bad Request");
     }
 
-    // Solo le nostre pagine possono aprire il canale (protezione cross-site)
     const origin = req.headers.origin;
     if (origin) {
       try {
@@ -204,7 +190,6 @@ function attachWebSocket(server) {
     }
 
     if (pathname === "/ws/host") {
-      // Stesso criterio di server.js: loopback O IP locale della macchina
       if (!auth.isLocalRequest(req)) return reject(404, "Not Found");
       return wss.handleUpgrade(req, socket, head, (ws) => onHost(ws));
     }
@@ -213,14 +198,12 @@ function attachWebSocket(server) {
   });
 }
 
-// Quando una sessione termina chiudo il canale del cliente e avviso l'host
 auth.events.on("end", ({ session, reason }) => {
   for (const ws of session.sockets) safeClose(ws, 4001, reason);
   session.sockets.clear();
   pushHost();
 });
 
-// Heartbeat: chiude i canali "morti" e tiene viva la sessione finché la pagina è aperta
 setInterval(() => {
   for (const ws of wss.clients) {
     if (ws.isAlive === false) {
