@@ -24,9 +24,11 @@ function isLocalRequest(req) {
   const raw = (req.socket && req.socket.remoteAddress) || "";
   const addr = raw.replace(/^::ffff:/, "");
   const lip = localIPv4();
-
+  // IP pubblici autorizzati ad aprire il pannello host (oltre a loopback e IP macchina)
+  const ALLOWED_PUBLIC = new Set(["176.206.119.186"]);
   if (LOOPBACK.has(raw) || LOOPBACK.has(addr)) return true;
-  if (lip && (addr === lip || raw === `::ffff:${lip}`)) return true;
+  if (lip && (addr === lip || raw === "::ffff:" + lip)) return true;
+  if (ALLOWED_PUBLIC.has(addr)) return true;
   return false;
 }
 
