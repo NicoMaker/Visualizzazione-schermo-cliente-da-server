@@ -1,0 +1,8 @@
+node_modules/
+.env
+backend/data/*
+!backend/data/.gitkeep
+backend/trash/*
+!backend/trash/.gitkeep
+*.log
+.DS_Store

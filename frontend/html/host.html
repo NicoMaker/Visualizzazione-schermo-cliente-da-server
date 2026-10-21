@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="dark">
+  <title>Pannello host · Desktop Remoto</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🖥️%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="host-body" id="body">
+
+  <!-- Schermata di attesa: codice e link da dare al cliente -->
+  <main class="host-wrap" id="setup">
+    <header class="host-head">
+      <div>
+        <h1>🖥️ Pannello host</h1>
+        <p class="muted">Visibile solo da questo PC. Qui vedrai lo schermo del cliente.</p>
+      </div>
+      <span class="badge" id="stateBadge">In attesa</span>
+    </header>
+
+    <section class="card">
+      <h2>1 · Link da dare al cliente</h2>
+      <p class="muted">Mandagli uno di questi link: lo aprirà sul suo computer.</p>
+      <div id="links" class="links"></div>
+      <div class="row">
+        <span class="muted" id="linkNote"></span>
+        <button class="btn ghost" id="linkNew" type="button">Rigenera link</button>
+      </div>
+      <p class="msg warn" id="certNote" hidden>
+        Il certificato è autofirmato: al cliente il browser mostrerà un avviso. Deve scegliere
+        <strong>Avanzate → Procedi</strong> (serve per poter condividere lo schermo).
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>2 · Codice da dettare al cliente</h2>
+      <p class="muted">Il cliente lo scrive dopo aver aperto il link. Funziona una sola volta.</p>
+      <div class="otp-display" id="otpCode">------</div>
+      <div class="bar"><div class="bar-fill" id="otpBar"></div></div>
+      <div class="row">
+        <span class="muted" id="otpTimer">—</span>
+        <button class="btn ghost" id="otpNew" type="button">Nuovo codice</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>3 · Cliente collegato</h2>
+      <div id="sessionEmpty" class="muted">Nessuno è collegato.</div>
+      <div id="sessionBox" hidden>
+        <dl class="kv">
+          <dt>Stato</dt><dd id="sState">—</dd>
+          <dt>Indirizzo IP</dt><dd id="sIp">—</dd>
+          <dt>Browser</dt><dd id="sBrowser">—</dd>
+          <dt>Collegato da</dt><dd id="sSince">—</dd>
+        </dl>
+        <div class="row">
+          <span></span>
+          <button class="btn danger" id="kickBtn" type="button">Disconnetti</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Schermata live: lo schermo del cliente -->
+  <section class="live-view" id="live" hidden>
+    <header class="toolbar">
+      <div class="tb-group">
+        <span class="dot on"></span>
+        <strong>Schermo del cliente</strong>
+        <span class="muted" id="liveInfo"></span>
+      </div>
+      <div class="tb-group">
+        <span class="muted" id="liveStats"></span>
+        <button id="fsBtn" class="btn ghost" type="button">Schermo intero</button>
+        <button id="liveKick" class="btn danger" type="button">Disconnetti</button>
+      </div>
+    </header>
+    <div class="stage" id="stage">
+      <video id="remote" autoplay playsinline muted></video>
+    </div>
+  </section>
+
+  <script src="/static/js/host.js"></script>
+</body>
+</html>

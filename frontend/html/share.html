@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="dark">
+  <title>Condividi lo schermo · Desktop Remoto</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🖥️%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="page-center">
+  <main class="card card-share">
+    <div class="logo" id="icon">🖥️</div>
+    <h1 id="title">Condividi il tuo schermo</h1>
+    <p class="muted" id="lead">Il tecnico potrà <strong>vedere</strong> lo schermo o la finestra che sceglierai tu. Non potrà muovere il mouse né usare la tastiera.</p>
+
+    <div class="status-line" id="statusLine" hidden>
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">—</span>
+    </div>
+
+    <ul class="notes" id="notes">
+      <li>Il browser ti chiederà <strong>cosa condividere</strong>: l'intero schermo, una finestra o una scheda.</li>
+      <li>Puoi interrompere in qualsiasi momento con il pulsante qui sotto o con quello del browser.</li>
+      <li>Chiudi le finestre con dati privati prima di condividere l'intero schermo.</li>
+    </ul>
+
+    <p id="msg" class="msg" role="alert" hidden></p>
+
+    <button class="btn primary block" id="startBtn" type="button">Scegli cosa condividere</button>
+    <button class="btn danger block" id="stopBtn" type="button" hidden>Interrompi la condivisione</button>
+    <a class="btn block" id="homeLink" href="/" hidden>Torna alla pagina iniziale</a>
+  </main>
+  <script src="/static/js/share.js"></script>
+</body>
+</html>

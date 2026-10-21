@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="dark">
+  <title>Accesso · Desktop Remoto</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🖥️%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="page-center">
+  <main class="card card-narrow">
+    <div class="logo">🔐</div>
+    <h1>Inserisci il codice</h1>
+    <p class="muted">Scrivi il <strong>codice a 6 cifre</strong> che ti ha comunicato il tecnico. Il codice è valido per pochi secondi. Dopo questo passaggio sceglierai tu se e cosa condividere.</p>
+
+    <form id="loginForm" autocomplete="off" novalidate>
+      <input id="otp" class="otp-input" type="text" inputmode="numeric" pattern="[0-9]*"
+             maxlength="6" autocomplete="one-time-code" placeholder="000000" aria-label="Codice OTP" autofocus>
+      <button id="submitBtn" class="btn primary block" type="submit">Continua</button>
+      <p id="msg" class="msg" role="alert" hidden></p>
+    </form>
+  </main>
+  <script src="/static/js/login.js"></script>
+</body>
+</html>
