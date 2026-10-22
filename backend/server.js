@@ -1,7 +1,6 @@
 const http = require("http");
 const https = require("https");
 const path = require("path");
-const fs = require("fs");
 const express = require("express");
 const cron = require("node-cron");
 
@@ -57,9 +56,7 @@ function sameOrigin(req, res, next) {
       return res.status(403).json({ ok: false });
     }
   }
-  if (
-    !String(req.headers["content-type"] || "").startsWith("application/json")
-  ) {
+  if (!String(req.headers["content-type"] || "").startsWith("application/json")) {
     return res.status(415).json({ ok: false });
   }
   next();
@@ -118,34 +115,6 @@ app.get("/", (req, res) => {
   page(res, "index.html");
 });
 
-/* Programma di controllo remoto (facoltativo): scaricabile solo dal cliente già autenticato. */
-const AGENT_DIR = path.join(__dirname, "..", "agent");
-const AGENT_FILES = new Set(["agent.js", "package.json"]);
-
-/*
- * Pacchetto Windows pronto all'uso (agent.exe + libreria nativa in uno zip),
- * generato una volta dal tecnico con `node agent/build-win.js` (vedi README).
- * Se il file non esiste, il pannello mostra solo le istruzioni Node.js.
- * Queste due route hanno un percorso fisso e DEVONO stare prima di
- * "/agent/:file" qui sotto, altrimenti Express le farebbe matchare lì
- * (con :file = "windows-available" / "windows.zip") e restituirebbe sempre 404.
- */
-const AGENT_WIN_ZIP = path.join(AGENT_DIR, "dist", "agente-windows.zip");
-app.get("/agent/windows-available", (req, res) => {
-  if (!sessionFrom(req)) return notFound(req, res);
-  res.json({ available: fs.existsSync(AGENT_WIN_ZIP) });
-});
-app.get("/agent/windows.zip", (req, res) => {
-  if (!sessionFrom(req) || !fs.existsSync(AGENT_WIN_ZIP)) return notFound(req, res);
-  res.download(AGENT_WIN_ZIP, "DesktopRemoto-Windows.zip");
-});
-
-app.get("/agent/:file", (req, res) => {
-  if (!sessionFrom(req) || !AGENT_FILES.has(req.params.file))
-    return notFound(req, res);
-  res.download(path.join(AGENT_DIR, req.params.file), req.params.file);
-});
-
 app.get("/c/:token", (req, res) => {
   const ip = auth.clientIp(req);
   if (auth.lockedFor(ip)) return page(res, "429.html", 429);
@@ -174,9 +143,7 @@ app.post("/api/login", sameOrigin, (req, res) => {
     return res.status(404).json({ ok: false, error: "Link non valido." });
   }
   if (typeof otp !== "string" || !/^\d{6}$/.test(otp)) {
-    return res
-      .status(400)
-      .json({ ok: false, error: "Inserisci le 6 cifre del codice." });
+    return res.status(400).json({ ok: false, error: "Inserisci le 6 cifre del codice." });
   }
   if (!auth.verifyOtp(otp)) {
     auth.registerFail(ip);
@@ -205,8 +172,7 @@ app.get("/share", (req, res) => {
 
 app.post("/api/logout", sameOrigin, (req, res) => {
   const session = sessionFrom(req);
-  if (session)
-    auth.endSession(session.id, "il cliente ha interrotto la condivisione");
+  if (session) auth.endSession(session.id, "il cliente ha interrotto la condivisione");
   clearSessionCookie(req, res);
   res.json({ ok: true });
 });
@@ -359,13 +325,9 @@ async function start() {
   console.log(`🌐 IP Pubblico: ${scheme}://${net.publicIP}:${PORT}`);
   console.log(`🏠 IP Locale:   ${scheme}://${net.localIP}:${PORT}`);
   console.log(`\n--------------------------------------`);
-  console.log(
-    `⏰ Cron cestino attivo: eliminazione automatica ogni notte alle 00:00`,
-  );
+  console.log(`⏰ Cron cestino attivo: eliminazione automatica ogni notte alle 00:00`);
   console.log(`--------------------------------------`);
-  console.log(
-    `\n🛡️  PANNELLO HOST (apri questo sul tuo PC, qui vedrai lo schermo del cliente):`,
-  );
+  console.log(`\n🛡️  PANNELLO HOST (apri questo sul tuo PC, qui vedrai lo schermo del cliente):`);
   for (const u of hostUrls) console.log(`   ${u}`);
   console.log(`\n🔗 Link da dare al cliente:`);
   if (links.public) console.log(`   Internet:    ${links.public}`);
@@ -401,10 +363,7 @@ async function start() {
 }
 
 process.on("unhandledRejection", (err) => {
-  console.error(
-    "⚠️  Errore non gestito:",
-    err && err.message ? err.message : err,
-  );
+  console.error("⚠️  Errore non gestito:", err && err.message ? err.message : err);
 });
 
 start();
