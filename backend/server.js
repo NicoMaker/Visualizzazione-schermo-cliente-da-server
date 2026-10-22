@@ -116,7 +116,10 @@ function buildLinks() {
   };
 }
 
+// Pannello host direttamente sulla radice (es. http://localhost:3003)
 app.get("/", (req, res) => {
+  if (auth.isHostRequest(req)) return page(res, "host.html");
+  if (auth.hostLoginEnabled()) return page(res, "host-login.html");
   page(res, "index.html");
 });
 
@@ -185,11 +188,8 @@ app.post("/api/logout", sameOrigin, (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/host", (req, res) => {
-  if (auth.isHostRequest(req)) return page(res, "host.html");
-  if (auth.hostLoginEnabled()) return page(res, "host-login.html");
-  notFound(req, res);
-});
+// Vecchio indirizzo: rimandato alla radice
+app.get("/host", (req, res) => res.redirect("/"));
 
 // Dice alla home se mostrare il bottone "Apri il pannello host"
 app.get("/api/host/info", (req, res) => {
@@ -227,7 +227,7 @@ app.post("/api/host/login", sameOrigin, (req, res) => {
       `Max-Age=${12 * 3600}`,
     ].join("; "),
   );
-  res.json({ ok: true, redirect: "/host" });
+  res.json({ ok: true, redirect: "/" });
 });
 
 app.post("/api/host/logout", sameOrigin, (req, res) => {
@@ -370,12 +370,12 @@ async function start() {
 
   const hostUrls = local
     ? [
-        `http://localhost:${config.LOCAL_HTTP_PORT}/host`,
-        `http://${net.localIP}:${config.LOCAL_HTTP_PORT}/host`,
+        `http://localhost:${config.LOCAL_HTTP_PORT}`,
+        `http://${net.localIP}:${config.LOCAL_HTTP_PORT}`,
       ]
     : [
-        `${scheme}://localhost:${PORT}/host`,
-        `${scheme}://${net.localIP}:${PORT}/host`,
+        `${scheme}://localhost:${PORT}`,
+        `${scheme}://${net.localIP}:${PORT}`,
       ];
   const links = buildLinks();
 
@@ -393,7 +393,7 @@ async function start() {
   for (const u of hostUrls) console.log(`   ${u}`);
   if (auth.hostLoginEnabled()) {
     console.log(
-      `   Da qualsiasi PC (serve HOST_PASSWORD): ${scheme}://${net.publicIP}:${PORT}/host`,
+      `   Da qualsiasi PC (serve HOST_PASSWORD): ${scheme}://${net.publicIP}:${PORT}`,
     );
   }
   console.log(`\n🔗 Link da dare al cliente:`);
