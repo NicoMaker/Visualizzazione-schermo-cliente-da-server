@@ -26,7 +26,7 @@
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
         show("Accesso eseguito, un attimo…", "ok");
-        location.href = data.redirect || "/";
+        location.href = data.redirect || "/host";
         return;
       }
       show(data.error || "Accesso negato.", "error");

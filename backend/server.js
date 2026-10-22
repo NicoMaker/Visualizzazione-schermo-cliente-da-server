@@ -116,10 +116,23 @@ function buildLinks() {
   };
 }
 
-// Pannello host direttamente sulla radice (es. http://localhost:3003)
-app.get("/", (req, res) => {
+// true se la richiesta arriva dalla porta locale (3003): lì il pannello host è sulla radice.
+// Sulla porta principale (3002) la radice mostra solo "usa il link personale".
+const onHostPort = (req) =>
+  !config.LOCAL_HTTP_PORT ||
+  (req.socket && req.socket.localPort === config.LOCAL_HTTP_PORT);
+
+function hostPanel(req, res) {
   if (auth.isHostRequest(req)) return page(res, "host.html");
   if (auth.hostLoginEnabled()) return page(res, "host-login.html");
+  notFound(req, res);
+}
+
+app.get("/", (req, res) => {
+  if (onHostPort(req)) {
+    if (auth.isHostRequest(req)) return page(res, "host.html");
+    if (auth.hostLoginEnabled()) return page(res, "host-login.html");
+  }
   page(res, "index.html");
 });
 
@@ -188,8 +201,12 @@ app.post("/api/logout", sameOrigin, (req, res) => {
   res.json({ ok: true });
 });
 
-// Vecchio indirizzo: rimandato alla radice
-app.get("/host", (req, res) => res.redirect("/"));
+// Porta 3003: /host rimanda alla radice. Porta 3002: resta /host (accesso remoto con password)
+app.get("/host", (req, res) =>
+  onHostPort(req) && config.LOCAL_HTTP_PORT
+    ? res.redirect("/")
+    : hostPanel(req, res),
+);
 
 // Dice alla home se mostrare il bottone "Apri il pannello host"
 app.get("/api/host/info", (req, res) => {
@@ -227,7 +244,10 @@ app.post("/api/host/login", sameOrigin, (req, res) => {
       `Max-Age=${12 * 3600}`,
     ].join("; "),
   );
-  res.json({ ok: true, redirect: "/" });
+  res.json({
+    ok: true,
+    redirect: onHostPort(req) ? "/" : "/host",
+  });
 });
 
 app.post("/api/host/logout", sameOrigin, (req, res) => {
