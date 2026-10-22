@@ -49,7 +49,7 @@
     els.start.hidden = live;
     els.stop.hidden = !live;
     els.notes.hidden = live;
-    els.icon.textContent = live ? "🟢" : "🖥️";
+    els.icon.dataset.state = live ? "live" : "";
     els.title.textContent = live
       ? "Stai condividendo lo schermo"
       : "Condividi il tuo schermo";
@@ -75,7 +75,7 @@
     ended = true;
     stopStream();
     closePc();
-    els.icon.textContent = "🔒";
+    els.icon.dataset.state = "locked";
     els.title.textContent = title;
     els.lead.textContent = text;
     els.notes.hidden = true;

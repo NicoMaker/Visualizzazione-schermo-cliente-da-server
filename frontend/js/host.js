@@ -105,7 +105,14 @@
   function render(next) {
     state = next;
 
-    els.otpCode.textContent = state.otp.code;
+    els.otpCode.replaceChildren(
+      ...[...state.otp.code].map((d) => {
+        const c = document.createElement("span");
+        c.textContent = d;
+        return c;
+      }),
+    );
+    els.otpCode.setAttribute("aria-label", "Codice " + state.otp.code);
     els.otpTimer.textContent = "Scade tra " + state.otp.remaining + " s";
     els.otpBar.style.width =
       Math.round((state.otp.remaining / state.otp.ttl) * 100) + "%";
@@ -122,8 +129,8 @@
     els.badge.textContent = !s
       ? "In attesa"
       : rtc.live
-        ? "● Schermo in diretta"
-        : "● Cliente collegato";
+        ? "Schermo in diretta"
+        : "Cliente collegato";
     els.badge.classList.toggle("live", !!s);
     els.sessionEmpty.hidden = !!s;
     els.sessionBox.hidden = !s;
@@ -132,7 +139,7 @@
       els.sIp.textContent = s.ip;
       els.sBrowser.textContent = s.browser || "—";
       els.sSince.textContent = new Date(s.since).toLocaleTimeString("it-IT");
-      els.liveInfo.textContent = "· " + s.ip;
+      els.liveInfo.textContent = s.ip;
     }
     updateView();
   }

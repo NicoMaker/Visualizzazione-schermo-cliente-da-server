@@ -2,46 +2,26 @@
 <html lang="it">
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
-    />
-    <meta name="theme-color" content="#0a0f1e" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1217" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#e9eef0" media="(prefers-color-scheme: light)" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="color-scheme" content="dark light" />
-    <title>Accesso · Desktop Remoto</title>
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🖥️%3C/text%3E%3C/svg%3E"
-    />
+    <title>Inserisci il codice · Desktop Remoto</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b6e83'/%3E%3Cpath d='M7 12V9a2 2 0 0 1 2-2h3M20 7h3a2 2 0 0 1 2 2v3M25 20v3a2 2 0 0 1-2 2h-3M12 25H9a2 2 0 0 1-2-2v-3' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Crect x='11.5' y='12.5' width='9' height='7' rx='1' fill='white'/%3E%3C/svg%3E" />
     <link rel="stylesheet" href="/static/css/style.css" />
   </head>
   <body class="page-center">
     <main class="card card-narrow">
-      <div class="logo">🔐</div>
+      <div class="brand"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 11V6a2 2 0 0 1 2-2h5M21 4h5a2 2 0 0 1 2 2v5M28 21v5a2 2 0 0 1-2 2h-5M11 28H6a2 2 0 0 1-2-2v-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><rect x="10" y="11" width="12" height="8" rx="1.5" fill="currentColor"/></svg><span>Desktop Remoto</span></div>
       <h1>Inserisci il codice</h1>
       <p class="muted">
-        Scrivi il <strong>codice a 6 cifre</strong> che ti ha comunicato il
-        tecnico. Il codice è valido per pochi secondi. Dopo questo passaggio
-        sceglierai tu se e cosa condividere.
+        Scrivi le <strong>6 cifre</strong> che ti ha detto il tecnico. Il codice
+        scade in pochi secondi. Dopo potrai scegliere cosa condividere.
       </p>
-
       <form id="loginForm" autocomplete="off" novalidate>
-        <input
-          id="otp"
-          class="otp-input"
-          type="text"
-          inputmode="numeric"
-          pattern="[0-9]*"
-          maxlength="6"
-          autocomplete="one-time-code"
-          placeholder="000000"
-          aria-label="Codice OTP"
-          autofocus
-        />
-        <button id="submitBtn" class="btn primary block" type="submit">
-          Continua
-        </button>
+        <input id="otp" class="otp-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" aria-label="Codice a 6 cifre" autofocus />
+        <button id="submitBtn" class="btn primary block" type="submit">Continua</button>
         <p id="msg" class="msg" role="alert" hidden></p>
       </form>
     </main>

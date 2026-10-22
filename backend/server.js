@@ -393,7 +393,10 @@ async function start() {
         `http://localhost:${config.LOCAL_HTTP_PORT}`,
         `http://${net.localIP}:${config.LOCAL_HTTP_PORT}`,
       ]
-    : [`${scheme}://localhost:${PORT}`, `${scheme}://${net.localIP}:${PORT}`];
+    : [
+        `${scheme}://localhost:${PORT}`,
+        `${scheme}://${net.localIP}:${PORT}`,
+      ];
   const links = buildLinks();
 
   console.log(`\n🚀 Server avviato con successo!`);
