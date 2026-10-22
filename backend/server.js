@@ -137,7 +137,11 @@ app.get("/", (req, res) => {
   }
   // Porta principale (3002): chi ha già fatto il login host (es. da rete cellulare)
   // trova il pannello anche sulla radice; tutti gli altri vedono la home normale.
-  if (auth.hostSessionValid(auth.parseCookies(req.headers.cookie)[auth.HOST_COOKIE]))
+  if (
+    auth.hostSessionValid(
+      auth.parseCookies(req.headers.cookie)[auth.HOST_COOKIE],
+    )
+  )
     return page(res, "host.html");
   page(res, "index.html");
 });
