@@ -62,7 +62,10 @@ module.exports = {
 
   // Chi può aprire il pannello host: "lan" = questo PC + tutti i dispositivi della stessa rete,
   // "local" = solo questo PC. HOST_ALLOWED_IPS = IP extra (anche prefissi tipo 100.64.)
-  HOST_ACCESS: (process.env.HOST_ACCESS || "lan").trim().toLowerCase() === "local" ? "local" : "lan",
+  HOST_ACCESS:
+    (process.env.HOST_ACCESS || "lan").trim().toLowerCase() === "local"
+      ? "local"
+      : "lan",
   HOST_ALLOWED_IPS: list(
     process.env.HOST_ALLOWED_IPS === undefined
       ? "176.206.119.186"
@@ -71,9 +74,10 @@ module.exports = {
 
   // Password del pannello host: se impostata, il pannello si apre da QUALSIASI PC/telefono
   // (anche da internet) dopo aver inserito la password. Minimo 8 caratteri.
-  HOST_PASSWORD: (process.env.HOST_PASSWORD || "").trim().length >= 8
-    ? (process.env.HOST_PASSWORD || "").trim()
-    : "",
+  HOST_PASSWORD:
+    (process.env.HOST_PASSWORD || "").trim().length >= 8
+      ? (process.env.HOST_PASSWORD || "").trim()
+      : "",
 
   ACCESS_TOKEN: /^[A-Za-z0-9_-]{16,64}$/.test(token) ? token : "",
   PUBLIC_URL: (process.env.PUBLIC_URL || "").trim().replace(/\/+$/, ""),

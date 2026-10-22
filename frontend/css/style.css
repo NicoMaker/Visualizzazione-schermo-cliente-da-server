@@ -73,8 +73,16 @@ body {
   font-size: 1rem;
   color: var(--text);
   background:
-    radial-gradient(1200px 600px at 20% -10%, var(--glow-1) 0%, transparent 60%),
-    radial-gradient(900px 500px at 100% 110%, var(--glow-2) 0%, transparent 55%),
+    radial-gradient(
+      1200px 600px at 20% -10%,
+      var(--glow-1) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 500px at 100% 110%,
+      var(--glow-2) 0%,
+      transparent 55%
+    ),
     var(--bg);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;

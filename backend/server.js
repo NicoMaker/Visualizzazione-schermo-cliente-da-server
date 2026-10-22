@@ -56,7 +56,9 @@ function sameOrigin(req, res, next) {
       return res.status(403).json({ ok: false });
     }
   }
-  if (!String(req.headers["content-type"] || "").startsWith("application/json")) {
+  if (
+    !String(req.headers["content-type"] || "").startsWith("application/json")
+  ) {
     return res.status(415).json({ ok: false });
   }
   next();
@@ -65,7 +67,8 @@ function sameOrigin(req, res, next) {
 // Pannello host: PC locale / rete / IP autorizzati, oppure chi ha inserito la password
 function requireLocal(req, res, next) {
   if (auth.isHostRequest(req)) return next();
-  if (auth.hostLoginEnabled()) return res.status(401).json({ ok: false, login: true });
+  if (auth.hostLoginEnabled())
+    return res.status(401).json({ ok: false, login: true });
   return notFound(req, res);
 }
 
@@ -145,7 +148,9 @@ app.post("/api/login", sameOrigin, (req, res) => {
     return res.status(404).json({ ok: false, error: "Link non valido." });
   }
   if (typeof otp !== "string" || !/^\d{6}$/.test(otp)) {
-    return res.status(400).json({ ok: false, error: "Inserisci le 6 cifre del codice." });
+    return res
+      .status(400)
+      .json({ ok: false, error: "Inserisci le 6 cifre del codice." });
   }
   if (!auth.verifyOtp(otp)) {
     auth.registerFail(ip);
@@ -174,7 +179,8 @@ app.get("/share", (req, res) => {
 
 app.post("/api/logout", sameOrigin, (req, res) => {
   const session = sessionFrom(req);
-  if (session) auth.endSession(session.id, "il cliente ha interrotto la condivisione");
+  if (session)
+    auth.endSession(session.id, "il cliente ha interrotto la condivisione");
   clearSessionCookie(req, res);
   res.json({ ok: true });
 });
@@ -195,7 +201,9 @@ app.get("/api/host/info", (req, res) => {
 
 app.post("/api/host/login", sameOrigin, (req, res) => {
   if (!auth.hostLoginEnabled())
-    return res.status(404).json({ ok: false, error: "Accesso con password non attivo." });
+    return res
+      .status(404)
+      .json({ ok: false, error: "Accesso con password non attivo." });
   const key = "host:" + auth.clientIp(req);
   const wait = auth.lockedFor(key);
   if (wait) {
@@ -213,7 +221,11 @@ app.post("/api/host/login", sameOrigin, (req, res) => {
   const id = auth.createHostSession();
   res.setHeader(
     "Set-Cookie",
-    [`${auth.HOST_COOKIE}=${id}`, ...cookieFlags(req), `Max-Age=${12 * 3600}`].join("; "),
+    [
+      `${auth.HOST_COOKIE}=${id}`,
+      ...cookieFlags(req),
+      `Max-Age=${12 * 3600}`,
+    ].join("; "),
   );
   res.json({ ok: true, redirect: "/host" });
 });
@@ -371,12 +383,18 @@ async function start() {
   console.log(`🌐 IP Pubblico: ${scheme}://${net.publicIP}:${PORT}`);
   console.log(`🏠 IP Locale:   ${scheme}://${net.localIP}:${PORT}`);
   console.log(`\n--------------------------------------`);
-  console.log(`⏰ Cron cestino attivo: eliminazione automatica ogni notte alle 00:00`);
+  console.log(
+    `⏰ Cron cestino attivo: eliminazione automatica ogni notte alle 00:00`,
+  );
   console.log(`--------------------------------------`);
-  console.log(`\n🛡️  PANNELLO HOST (apri questo sul tuo PC, qui vedrai lo schermo del cliente):`);
+  console.log(
+    `\n🛡️  PANNELLO HOST (apri questo sul tuo PC, qui vedrai lo schermo del cliente):`,
+  );
   for (const u of hostUrls) console.log(`   ${u}`);
   if (auth.hostLoginEnabled()) {
-    console.log(`   Da qualsiasi PC (serve HOST_PASSWORD): ${scheme}://${net.publicIP}:${PORT}/host`);
+    console.log(
+      `   Da qualsiasi PC (serve HOST_PASSWORD): ${scheme}://${net.publicIP}:${PORT}/host`,
+    );
   }
   console.log(`\n🔗 Link da dare al cliente:`);
   if (links.public) console.log(`   Internet:    ${links.public}`);
@@ -412,7 +430,10 @@ async function start() {
 }
 
 process.on("unhandledRejection", (err) => {
-  console.error("⚠️  Errore non gestito:", err && err.message ? err.message : err);
+  console.error(
+    "⚠️  Errore non gestito:",
+    err && err.message ? err.message : err,
+  );
 });
 
 start();

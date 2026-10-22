@@ -28,16 +28,24 @@ function isPrivateAddress(addr) {
   const m = /^172\.(\d{1,3})\./.exec(addr);
   if (m && Number(m[1]) >= 16 && Number(m[1]) <= 31) return true;
   const a = addr.toLowerCase();
-  if (a.startsWith("fe80:") || a.startsWith("fc") || a.startsWith("fd")) return true;
+  if (a.startsWith("fe80:") || a.startsWith("fc") || a.startsWith("fd"))
+    return true;
   return false;
 }
 
 // Se la richiesta passa da un proxy/tunnel (cloudflared, ngrok, nginx...) NON è locale
-const PROXY_HEADERS = ["x-forwarded-for", "forwarded", "x-real-ip", "cf-connecting-ip"];
+const PROXY_HEADERS = [
+  "x-forwarded-for",
+  "forwarded",
+  "x-real-ip",
+  "cf-connecting-ip",
+];
 
 function matchesAllowed(addr) {
   return config.HOST_ALLOWED_IPS.some((rule) =>
-    rule.endsWith(".") || rule.endsWith(":") ? addr.startsWith(rule) : addr === rule,
+    rule.endsWith(".") || rule.endsWith(":")
+      ? addr.startsWith(rule)
+      : addr === rule,
   );
 }
 
@@ -93,7 +101,10 @@ function isHostRequest(req) {
 }
 
 function clientIp(req) {
-  return ((req.socket && req.socket.remoteAddress) || "").replace(/^::ffff:/, "");
+  return ((req.socket && req.socket.remoteAddress) || "").replace(
+    /^::ffff:/,
+    "",
+  );
 }
 
 function safeEqual(a, b) {
@@ -139,7 +150,11 @@ function regenerateToken() {
   fs.mkdirSync(config.DATA_DIR, { recursive: true });
   fs.writeFileSync(
     TOKEN_FILE,
-    JSON.stringify({ token: accessToken, createdAt: new Date().toISOString() }, null, 2),
+    JSON.stringify(
+      { token: accessToken, createdAt: new Date().toISOString() },
+      null,
+      2,
+    ),
     { mode: 0o600 },
   );
   return accessToken;
@@ -195,7 +210,8 @@ function lockedFor(ip) {
 function registerFail(ip) {
   const now = Date.now();
   let a = attempts.get(ip);
-  if (!a || now - a.first > FAIL_WINDOW_MS) a = { count: 0, first: now, lockedUntil: 0 };
+  if (!a || now - a.first > FAIL_WINDOW_MS)
+    a = { count: 0, first: now, lockedUntil: 0 };
   a.count += 1;
   if (a.count >= MAX_FAILS) {
     a.lockedUntil = now + LOCK_MS;
@@ -211,7 +227,8 @@ const sessions = new Map();
 const idleMs = () => config.SESSION_IDLE_MINUTES * 60 * 1000;
 
 function createSession(ip, userAgent) {
-  for (const id of [...sessions.keys()]) endSession(id, "sostituita da una nuova connessione");
+  for (const id of [...sessions.keys()])
+    endSession(id, "sostituita da una nuova connessione");
   const session = {
     id: crypto.randomBytes(32).toString("hex"),
     ip,

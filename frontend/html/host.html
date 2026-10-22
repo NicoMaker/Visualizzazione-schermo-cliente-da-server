@@ -30,42 +30,41 @@
       </header>
 
       <div class="host-grid">
-      <section class="card">
-        <h2>1 · Link da dare al cliente</h2>
-        <p class="muted">
-          Mandagli uno di questi link: lo aprirà sul suo computer.
-        </p>
-        <div id="links" class="links"></div>
-        <div class="row">
-          <span class="muted" id="linkNote"></span>
-          <button class="btn ghost" id="linkNew" type="button">
-            Rigenera link
-          </button>
-        </div>
-        <p class="msg warn" id="certNote" hidden>
-          Il certificato è autofirmato: al cliente il browser mostrerà un
-          avviso. Deve scegliere
-          <strong>Avanzate → Procedi</strong> (serve per poter condividere lo
-          schermo).
-        </p>
-      </section>
+        <section class="card">
+          <h2>1 · Link da dare al cliente</h2>
+          <p class="muted">
+            Mandagli uno di questi link: lo aprirà sul suo computer.
+          </p>
+          <div id="links" class="links"></div>
+          <div class="row">
+            <span class="muted" id="linkNote"></span>
+            <button class="btn ghost" id="linkNew" type="button">
+              Rigenera link
+            </button>
+          </div>
+          <p class="msg warn" id="certNote" hidden>
+            Il certificato è autofirmato: al cliente il browser mostrerà un
+            avviso. Deve scegliere
+            <strong>Avanzate → Procedi</strong> (serve per poter condividere lo
+            schermo).
+          </p>
+        </section>
 
-      <section class="card">
-        <h2>2 · Codice da dettare al cliente</h2>
-        <p class="muted">
-          Il cliente lo scrive dopo aver aperto il link. Funziona una sola
-          volta.
-        </p>
-        <div class="otp-display" id="otpCode">------</div>
-        <div class="bar"><div class="bar-fill" id="otpBar"></div></div>
-        <div class="row">
-          <span class="muted" id="otpTimer">—</span>
-          <button class="btn ghost" id="otpNew" type="button">
-            Nuovo codice
-          </button>
-        </div>
-      </section>
-
+        <section class="card">
+          <h2>2 · Codice da dettare al cliente</h2>
+          <p class="muted">
+            Il cliente lo scrive dopo aver aperto il link. Funziona una sola
+            volta.
+          </p>
+          <div class="otp-display" id="otpCode">------</div>
+          <div class="bar"><div class="bar-fill" id="otpBar"></div></div>
+          <div class="row">
+            <span class="muted" id="otpTimer">—</span>
+            <button class="btn ghost" id="otpNew" type="button">
+              Nuovo codice
+            </button>
+          </div>
+        </section>
       </div>
 
       <section class="card">
