@@ -2,9 +2,13 @@
 <html lang="it">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0a0f1e" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="dark light" />
     <title>Pannello host · Desktop Remoto</title>
     <link
       rel="icon"
@@ -19,12 +23,13 @@
         <div>
           <h1>🖥️ Pannello host</h1>
           <p class="muted">
-            Visibile solo da questo PC. Qui vedrai lo schermo del cliente.
+            Visibile solo dalla tua rete. Qui vedrai lo schermo del cliente.
           </p>
         </div>
         <span class="badge" id="stateBadge">In attesa</span>
       </header>
 
+      <div class="host-grid">
       <section class="card">
         <h2>1 · Link da dare al cliente</h2>
         <p class="muted">
@@ -60,6 +65,8 @@
           </button>
         </div>
       </section>
+
+      </div>
 
       <section class="card">
         <h2>3 · Cliente collegato</h2>
