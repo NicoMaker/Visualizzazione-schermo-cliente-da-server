@@ -60,6 +60,15 @@ module.exports = {
     ? Math.round(num(process.env.LOCAL_HTTP_PORT, PORT + 1, 0, 65535))
     : 0,
 
+  // Chi può aprire il pannello host: "lan" = questo PC + tutti i dispositivi della stessa rete,
+  // "local" = solo questo PC. HOST_ALLOWED_IPS = IP extra (anche prefissi tipo 100.64.)
+  HOST_ACCESS: (process.env.HOST_ACCESS || "lan").trim().toLowerCase() === "local" ? "local" : "lan",
+  HOST_ALLOWED_IPS: list(
+    process.env.HOST_ALLOWED_IPS === undefined
+      ? "176.206.119.186"
+      : process.env.HOST_ALLOWED_IPS,
+  ),
+
   ACCESS_TOKEN: /^[A-Za-z0-9_-]{16,64}$/.test(token) ? token : "",
   PUBLIC_URL: (process.env.PUBLIC_URL || "").trim().replace(/\/+$/, ""),
 

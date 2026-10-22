@@ -20,15 +20,38 @@ function localIPv4() {
   return null;
 }
 
+// Indirizzi di rete privata (casa/ufficio): 10.x, 172.16-31.x, 192.168.x, 169.254.x, IPv6 locali
+function isPrivateAddress(addr) {
+  if (/^10\./.test(addr)) return true;
+  if (/^192\.168\./.test(addr)) return true;
+  if (/^169\.254\./.test(addr)) return true;
+  const m = /^172\.(\d{1,3})\./.exec(addr);
+  if (m && Number(m[1]) >= 16 && Number(m[1]) <= 31) return true;
+  const a = addr.toLowerCase();
+  if (a.startsWith("fe80:") || a.startsWith("fc") || a.startsWith("fd")) return true;
+  return false;
+}
+
+// Se la richiesta passa da un proxy/tunnel (cloudflared, ngrok, nginx...) NON è locale
+const PROXY_HEADERS = ["x-forwarded-for", "forwarded", "x-real-ip", "cf-connecting-ip"];
+
+function matchesAllowed(addr) {
+  return config.HOST_ALLOWED_IPS.some((rule) =>
+    rule.endsWith(".") || rule.endsWith(":") ? addr.startsWith(rule) : addr === rule,
+  );
+}
+
 function isLocalRequest(req) {
   const raw = (req.socket && req.socket.remoteAddress) || "";
   const addr = raw.replace(/^::ffff:/, "");
-  const lip = localIPv4();
-  // IP pubblici autorizzati ad aprire il pannello host (oltre a loopback e IP macchina)
-  const ALLOWED_PUBLIC = new Set(["176.206.119.186"]);
+  if (PROXY_HEADERS.some((h) => req.headers[h])) return false;
   if (LOOPBACK.has(raw) || LOOPBACK.has(addr)) return true;
-  if (lip && (addr === lip || raw === "::ffff:" + lip)) return true;
-  if (ALLOWED_PUBLIC.has(addr)) return true;
+  const lip = localIPv4();
+  if (lip && addr === lip) return true;
+  // Altri PC / telefoni della stessa rete (Wi-Fi/LAN)
+  if (config.HOST_ACCESS === "lan" && isPrivateAddress(addr)) return true;
+  // IP espliciti autorizzati nel .env (HOST_ALLOWED_IPS)
+  if (matchesAllowed(addr)) return true;
   return false;
 }
 

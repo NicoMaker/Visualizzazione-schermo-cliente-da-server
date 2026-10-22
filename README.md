@@ -178,7 +178,7 @@ Note e limiti:
 - **OTP monouso**: dopo l'uso ne viene generato subito un altro; scade dopo `OTP_TTL_SECONDS` e cambia dopo 5 tentativi errati.
 - **Anti brute-force**: 5 errori dallo stesso IP → blocco di 5 minuti.
 - **Un cliente alla volta**: un nuovo accesso chiude il precedente.
-- **Pannello host solo da questo PC**: da internet (o dietro proxy/tunnel) restituisce 404.
+- **Pannello host solo dalla tua rete**: da internet (o dietro proxy/tunnel) restituisce 404. Con `HOST_ACCESS=lan` (default) lo aprono anche gli altri PC/telefoni della stessa rete; con `HOST_ACCESS=local` solo il PC del server.
 - Cookie `HttpOnly` + `SameSite=Strict` (+ `Secure` in HTTPS), controllo `Origin` su POST e WebSocket, header di sicurezza (CSP, `X-Frame-Options`…).
 - Il **cliente decide cosa condividere** e può fermare la condivisione in qualsiasi momento; tu puoi **disconnetterlo** dal pannello.
 - Il link si può **rigenerare** dal pannello host (il vecchio smette subito di funzionare).
@@ -225,6 +225,8 @@ Un cron (`node-cron`) **svuota il cestino ogni notte alle 00:00**, quindi non re
 ---
 
 ## Problemi comuni
+
+- **Non vedo il bottone "Apri il pannello host"** da un altro PC/telefono: il bottone compare solo se il tuo indirizzo è autorizzato. Controlla `HOST_ACCESS=lan` e `HOST_ALLOWED_IPS` nel `.env`, riavvia, e apri la home dalla *Rete locale* (es. `https://192.168.1.20:3000`). Non funziona se passi da un tunnel/proxy.
 
 - **Il cliente non vede il pulsante / dice "solo connessioni sicure"**: ha aperto un link `http://`. Dagli quello `https://` (vedi sezione HTTPS).
 - **Avviso del browser sul link**: è il certificato autofirmato; vedi sezione HTTPS per eliminarlo.
