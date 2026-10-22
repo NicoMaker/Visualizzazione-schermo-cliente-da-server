@@ -27,10 +27,9 @@
   --radius-sm: 6px;
   --tap: 46px;
   --font:
-    "Avenir Next", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
-    Roboto, "Helvetica Neue", Arial, sans-serif;
-  --mono:
-    ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    "Avenir Next", "Segoe UI Variable Text", "Segoe UI", system-ui,
+    -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
@@ -147,7 +146,9 @@ p {
   border-radius: var(--radius);
   background: var(--accent-soft);
   color: var(--accent);
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 .status-icon .mark {
   width: 2rem;
