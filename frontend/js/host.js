@@ -143,6 +143,7 @@
         credentials: "same-origin",
       });
       if (res.ok) render(await res.json());
+      else if (res.status === 401) location.reload();
     } catch {
       els.badge.textContent = "Server non raggiungibile";
       els.badge.classList.remove("live");

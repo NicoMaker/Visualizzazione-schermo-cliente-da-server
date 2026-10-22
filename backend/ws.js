@@ -190,7 +190,7 @@ function attachWebSocket(server) {
     }
 
     if (pathname === "/ws/host") {
-      if (!auth.isLocalRequest(req)) return reject(404, "Not Found");
+      if (!auth.isHostRequest(req)) return reject(404, "Not Found");
       return wss.handleUpgrade(req, socket, head, (ws) => onHost(ws));
     }
 

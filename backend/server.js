@@ -62,9 +62,11 @@ function sameOrigin(req, res, next) {
   next();
 }
 
+// Pannello host: PC locale / rete / IP autorizzati, oppure chi ha inserito la password
 function requireLocal(req, res, next) {
-  if (!auth.isLocalRequest(req)) return notFound(req, res);
-  next();
+  if (auth.isHostRequest(req)) return next();
+  if (auth.hostLoginEnabled()) return res.status(401).json({ ok: false, login: true });
+  return notFound(req, res);
 }
 
 function notFound(req, res) {
@@ -177,8 +179,52 @@ app.post("/api/logout", sameOrigin, (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/host", requireLocal, (req, res) => {
-  page(res, "host.html");
+app.get("/host", (req, res) => {
+  if (auth.isHostRequest(req)) return page(res, "host.html");
+  if (auth.hostLoginEnabled()) return page(res, "host-login.html");
+  notFound(req, res);
+});
+
+// Dice alla home se mostrare il bottone "Apri il pannello host"
+app.get("/api/host/info", (req, res) => {
+  res.json({
+    authorized: auth.isHostRequest(req),
+    loginAvailable: auth.hostLoginEnabled(),
+  });
+});
+
+app.post("/api/host/login", sameOrigin, (req, res) => {
+  if (!auth.hostLoginEnabled())
+    return res.status(404).json({ ok: false, error: "Accesso con password non attivo." });
+  const key = "host:" + auth.clientIp(req);
+  const wait = auth.lockedFor(key);
+  if (wait) {
+    return res.status(429).json({
+      ok: false,
+      error: `Troppi tentativi. Riprova tra ${wait} secondi.`,
+    });
+  }
+  const { password } = req.body || {};
+  if (!auth.checkHostPassword(password)) {
+    auth.registerFail(key);
+    return res.status(401).json({ ok: false, error: "Password errata." });
+  }
+  auth.clearFails(key);
+  const id = auth.createHostSession();
+  res.setHeader(
+    "Set-Cookie",
+    [`${auth.HOST_COOKIE}=${id}`, ...cookieFlags(req), `Max-Age=${12 * 3600}`].join("; "),
+  );
+  res.json({ ok: true, redirect: "/host" });
+});
+
+app.post("/api/host/logout", sameOrigin, (req, res) => {
+  auth.endHostSession(auth.parseCookies(req.headers.cookie)[auth.HOST_COOKIE]);
+  res.setHeader(
+    "Set-Cookie",
+    [`${auth.HOST_COOKIE}=`, ...cookieFlags(req), "Max-Age=0"].join("; "),
+  );
+  res.json({ ok: true });
 });
 
 app.get("/api/host/state", requireLocal, (req, res) => {
@@ -329,6 +375,9 @@ async function start() {
   console.log(`--------------------------------------`);
   console.log(`\n🛡️  PANNELLO HOST (apri questo sul tuo PC, qui vedrai lo schermo del cliente):`);
   for (const u of hostUrls) console.log(`   ${u}`);
+  if (auth.hostLoginEnabled()) {
+    console.log(`   Da qualsiasi PC (serve HOST_PASSWORD): ${scheme}://${net.publicIP}:${PORT}/host`);
+  }
   console.log(`\n🔗 Link da dare al cliente:`);
   if (links.public) console.log(`   Internet:    ${links.public}`);
   console.log(`   Rete locale: ${links.local}`);

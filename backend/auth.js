@@ -55,6 +55,43 @@ function isLocalRequest(req) {
   return false;
 }
 
+// ---------- Accesso al pannello host con password (da qualsiasi PC) ----------
+const HOST_COOKIE = "rd_host";
+const HOST_SESSION_MS = 12 * 60 * 60 * 1000;
+const hostSessions = new Map(); // id -> scadenza
+
+const sha = (v) => crypto.createHash("sha256").update(String(v)).digest();
+const hostLoginEnabled = () => !!config.HOST_PASSWORD;
+
+function checkHostPassword(candidate) {
+  if (!config.HOST_PASSWORD || typeof candidate !== "string") return false;
+  return crypto.timingSafeEqual(sha(candidate), sha(config.HOST_PASSWORD));
+}
+
+function createHostSession() {
+  const id = crypto.randomBytes(32).toString("hex");
+  hostSessions.set(id, Date.now() + HOST_SESSION_MS);
+  return id;
+}
+
+function hostSessionValid(id) {
+  const exp = id && hostSessions.get(id);
+  if (!exp) return false;
+  if (Date.now() > exp) {
+    hostSessions.delete(id);
+    return false;
+  }
+  return true;
+}
+
+const endHostSession = (id) => hostSessions.delete(id);
+
+// Pannello host autorizzato: PC locale/rete/IP autorizzati OPPURE password inserita
+function isHostRequest(req) {
+  if (isLocalRequest(req)) return true;
+  return hostSessionValid(parseCookies(req.headers.cookie)[HOST_COOKIE]);
+}
+
 function clientIp(req) {
   return ((req.socket && req.socket.remoteAddress) || "").replace(/^::ffff:/, "");
 }
@@ -230,6 +267,12 @@ module.exports = {
   events,
   COOKIE_NAME,
   isLocalRequest,
+  isHostRequest,
+  HOST_COOKIE,
+  hostLoginEnabled,
+  checkHostPassword,
+  createHostSession,
+  endHostSession,
   clientIp,
   safeEqual,
   parseCookies,

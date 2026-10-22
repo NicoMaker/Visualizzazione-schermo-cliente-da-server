@@ -69,6 +69,12 @@ module.exports = {
       : process.env.HOST_ALLOWED_IPS,
   ),
 
+  // Password del pannello host: se impostata, il pannello si apre da QUALSIASI PC/telefono
+  // (anche da internet) dopo aver inserito la password. Minimo 8 caratteri.
+  HOST_PASSWORD: (process.env.HOST_PASSWORD || "").trim().length >= 8
+    ? (process.env.HOST_PASSWORD || "").trim()
+    : "",
+
   ACCESS_TOKEN: /^[A-Za-z0-9_-]{16,64}$/.test(token) ? token : "",
   PUBLIC_URL: (process.env.PUBLIC_URL || "").trim().replace(/\/+$/, ""),
 

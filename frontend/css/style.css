@@ -283,6 +283,24 @@ strong {
   color: var(--line);
 }
 
+.text-input {
+  display: block;
+  width: 100%;
+  min-height: var(--tap);
+  margin-top: 1rem;
+  padding: 0.7rem 0.9rem;
+  font: 600 1.05rem var(--font);
+  color: var(--text);
+  background: var(--field);
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  outline: none;
+}
+.text-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(79, 140, 255, 0.2);
+}
+
 .msg {
   margin: 0.9rem 0 0;
   padding: 0.65rem 0.85rem;
