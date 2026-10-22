@@ -129,10 +129,16 @@ function hostPanel(req, res) {
 }
 
 app.get("/", (req, res) => {
-  if (onHostPort(req)) {
+  if (onHostPort(req) && config.LOCAL_HTTP_PORT) {
+    // Porta host (3003): mai la home dei clienti. Pannello, login con password o 404.
     if (auth.isHostRequest(req)) return page(res, "host.html");
     if (auth.hostLoginEnabled()) return page(res, "host-login.html");
+    return notFound(req, res);
   }
+  // Porta principale (3002): chi ha già fatto il login host (es. da rete cellulare)
+  // trova il pannello anche sulla radice; tutti gli altri vedono la home normale.
+  if (auth.hostSessionValid(auth.parseCookies(req.headers.cookie)[auth.HOST_COOKIE]))
+    return page(res, "host.html");
   page(res, "index.html");
 });
 
@@ -246,7 +252,7 @@ app.post("/api/host/login", sameOrigin, (req, res) => {
   );
   res.json({
     ok: true,
-    redirect: onHostPort(req) ? "/" : "/host",
+    redirect: "/",
   });
 });
 
@@ -410,7 +416,18 @@ async function start() {
   for (const u of hostUrls) console.log(`   ${u}`);
   if (auth.hostLoginEnabled()) {
     console.log(
-      `   Da qualsiasi PC (serve HOST_PASSWORD): ${scheme}://${net.publicIP}:${PORT}`,
+      `   Da qualsiasi PC (serve HOST_PASSWORD): ${scheme}://${net.publicIP}:${PORT}/host`,
+    );
+    if (local)
+      console.log(
+        `   oppure (HTTP): http://${net.publicIP}:${config.LOCAL_HTTP_PORT}`,
+      );
+  } else {
+    console.log(
+      `   ⚠️  HOST_PASSWORD non impostata: il pannello si apre solo da questo PC/rete e dagli IP in HOST_ALLOWED_IPS.`,
+    );
+    console.log(
+      `      Dalle altre reti Wi-Fi vedrai una pagina 404. Imposta HOST_PASSWORD (min. 8 caratteri) nel file .env.`,
     );
   }
   console.log(`\n🔗 Link da dare al cliente:`);

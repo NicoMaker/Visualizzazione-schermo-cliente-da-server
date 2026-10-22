@@ -286,6 +286,7 @@ module.exports = {
   isLocalRequest,
   isHostRequest,
   HOST_COOKIE,
+  hostSessionValid,
   hostLoginEnabled,
   checkHostPassword,
   createHostSession,
