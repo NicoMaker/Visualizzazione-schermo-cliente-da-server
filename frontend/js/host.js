@@ -467,7 +467,12 @@
   });
   els.video.addEventListener("dblclick", () => els.fsBtn.click());
   document.addEventListener("keydown", (e) => {
-    if (showingLive && (e.key === "f" || e.key === "F") && !e.ctrlKey && !e.metaKey)
+    if (
+      showingLive &&
+      (e.key === "f" || e.key === "F") &&
+      !e.ctrlKey &&
+      !e.metaKey
+    )
       els.fsBtn.click();
   });
 

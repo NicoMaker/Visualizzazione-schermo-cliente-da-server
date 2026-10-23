@@ -308,7 +308,10 @@
         stream = await navigator.mediaDevices.getDisplayMedia(opts);
       } catch (e) {
         // browser che non accetta le opzioni extra: riprovo con quelle base
-        if (e && (e.name === "TypeError" || e.name === "OverconstrainedError")) {
+        if (
+          e &&
+          (e.name === "TypeError" || e.name === "OverconstrainedError")
+        ) {
           stream = await navigator.mediaDevices.getDisplayMedia({
             video: { frameRate: { ideal: cfg.maxFps, max: cfg.maxFps } },
             audio: false,
@@ -322,7 +325,7 @@
       els.start.disabled = false;
       if (err && err.name === "NotAllowedError") {
         message(
-          "Condivisione annullata. Premi di nuovo il pulsante e poi \"Condividi\".",
+          'Condivisione annullata. Premi di nuovo il pulsante e poi "Condividi".',
         );
       } else {
         message(
