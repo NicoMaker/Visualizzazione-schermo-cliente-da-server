@@ -94,10 +94,48 @@ function hostSessionValid(id) {
 
 const endHostSession = (id) => hostSessions.delete(id);
 
-// Pannello host autorizzato: PC locale/rete/IP autorizzati OPPURE password inserita
+// true se la richiesta arriva dalla porta del pannello host (es. 3003)
+function isHostPortRequest(req) {
+  return !!(
+    config.LOCAL_HTTP_PORT &&
+    req.socket &&
+    req.socket.localPort === config.LOCAL_HTTP_PORT
+  );
+}
+
+// Pannello host autorizzato.
+// - Porta host (3003): SEMPRE e solo con la password (nessuna eccezione per PC/rete locale).
+// - Altre porte: PC locale/rete/IP autorizzati OPPURE password inserita.
 function isHostRequest(req) {
+  const cookieOk = hostSessionValid(
+    parseCookies(req.headers.cookie)[HOST_COOKIE],
+  );
+  if (isHostPortRequest(req)) return cookieOk;
   if (isLocalRequest(req)) return true;
-  return hostSessionValid(parseCookies(req.headers.cookie)[HOST_COOKIE]);
+  return cookieOk;
+}
+
+// Se HOST_PASSWORD non è nel .env (o è < 8 caratteri) ne genera una casuale e la salva,
+// così la porta host chiede sempre la password.
+const HOST_PWD_FILE = path.join(config.DATA_DIR, "host-password.json");
+function loadHostPassword() {
+  if (config.HOST_PASSWORD) return { generated: false };
+  try {
+    const saved = JSON.parse(fs.readFileSync(HOST_PWD_FILE, "utf8"));
+    if (typeof saved.password === "string" && saved.password.length >= 8) {
+      config.HOST_PASSWORD = saved.password;
+      return { generated: false, fromFile: true };
+    }
+  } catch {
+    /* nessuna password salvata */
+  }
+  const password = crypto.randomBytes(9).toString("base64url");
+  fs.mkdirSync(config.DATA_DIR, { recursive: true });
+  fs.writeFileSync(HOST_PWD_FILE, JSON.stringify({ password }), {
+    mode: 0o600,
+  });
+  config.HOST_PASSWORD = password;
+  return { generated: true };
 }
 
 function clientIp(req) {
@@ -285,6 +323,8 @@ module.exports = {
   COOKIE_NAME,
   isLocalRequest,
   isHostRequest,
+  isHostPortRequest,
+  loadHostPassword,
   HOST_COOKIE,
   hostSessionValid,
   hostLoginEnabled,

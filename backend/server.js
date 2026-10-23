@@ -346,6 +346,7 @@ function listen(server, port, host) {
 async function start() {
   trash.ensureDir();
   auth.loadToken();
+  const hostPwd = auth.loadHostPassword();
   net.localIP = getLocalIP();
   net.publicIP = await getPublicIP();
 
@@ -418,6 +419,12 @@ async function start() {
     `\n🛡️  PANNELLO HOST (apri questo sul tuo PC, qui vedrai lo schermo del cliente):`,
   );
   for (const u of hostUrls) console.log(`   ${u}`);
+  if (hostPwd.generated || hostPwd.fromFile) {
+    console.log(
+      `   🔑 HOST_PASSWORD non impostata nel .env: uso la password salvata in backend/data/host-password.json`,
+    );
+    console.log(`      Password pannello host: ${config.HOST_PASSWORD}`);
+  }
   if (auth.hostLoginEnabled()) {
     console.log(
       `   Da qualsiasi PC (serve HOST_PASSWORD): ${scheme}://${net.publicIP}:${PORT}/host`,
