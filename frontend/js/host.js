@@ -11,6 +11,8 @@
     liveStats: $("liveStats"),
     liveKick: $("liveKick"),
     fsBtn: $("fsBtn"),
+    fsPrompt: $("fsPrompt"),
+    fsAuto: $("fsAuto"),
     badge: $("stateBadge"),
     otpCode: $("otpCode"),
     otpBar: $("otpBar"),
@@ -40,6 +42,35 @@
       credentials: "same-origin",
       body: JSON.stringify(body || {}),
     }).then((r) => r.json().catch(() => ({})));
+
+  /** Copia negli appunti anche su HTTP / rete locale (dove navigator.clipboard non esiste). */
+  async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        /* provo il metodo alternativo */
+      }
+    }
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText =
+      "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;";
+    document.body.append(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {
+      ok = false;
+    }
+    ta.remove();
+    return ok;
+  }
 
   /* ------------------------------------------------------------ */
   /* Stato (HTTP, ogni secondo): OTP, link, dati del cliente       */
@@ -72,18 +103,17 @@
       copy.className = "btn ghost";
       copy.textContent = "Copia";
       copy.addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(url);
-          copy.textContent = "Copiato ✓";
-        } catch {
+        const ok = await copyText(url);
+        if (!ok) {
+          // ultima risorsa: seleziono il link così basta premere Ctrl+C
           const range = document.createRange();
           range.selectNodeContents(code);
           const sel = getSelection();
           sel.removeAllRanges();
           sel.addRange(range);
-          copy.textContent = "Selezionato";
         }
-        setTimeout(() => (copy.textContent = "Copia"), 1500);
+        copy.textContent = ok ? "Copiato ✓" : "Premi Ctrl+C";
+        setTimeout(() => (copy.textContent = "Copia"), 1800);
       });
 
       item.append(text, copy);
@@ -167,10 +197,72 @@
     els.body.classList.toggle("is-live", live);
     if (live) {
       els.video.play().catch(() => {});
-    } else if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
+      autoFullscreen();
+    } else {
+      disarmFullscreen();
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     }
   }
+
+  /* ------------------------------------------------------------ */
+  /* Schermo intero automatico                                    */
+  /* ------------------------------------------------------------ */
+  // I browser permettono il fullscreen solo dopo un gesto dell'utente (click/tasto).
+  // Provo subito; se il browser rifiuta, mostro "Tocca per schermo intero" e
+  // al primo click/tasto in qualsiasi punto della pagina entro in schermo intero.
+  const FS_KEY = "autoFullscreen";
+  const autoFsOn = () => {
+    try {
+      return localStorage.getItem(FS_KEY) !== "0";
+    } catch {
+      return true;
+    }
+  };
+  let fsArmed = false;
+
+  function enterFullscreen() {
+    if (document.fullscreenElement) return Promise.resolve();
+    const el = els.stage;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!req) return Promise.reject(new Error("non supportato"));
+    return Promise.resolve(req.call(el));
+  }
+
+  function onFsGesture() {
+    disarmFullscreen();
+    enterFullscreen().catch(() => {});
+  }
+
+  function disarmFullscreen() {
+    fsArmed = false;
+    els.fsPrompt.hidden = true;
+    document.removeEventListener("pointerdown", onFsGesture, true);
+    document.removeEventListener("keydown", onFsGesture, true);
+  }
+
+  function armFullscreen() {
+    if (fsArmed || document.fullscreenElement) return;
+    fsArmed = true;
+    els.fsPrompt.hidden = false;
+    document.addEventListener("pointerdown", onFsGesture, true);
+    document.addEventListener("keydown", onFsGesture, true);
+  }
+
+  function autoFullscreen() {
+    if (!autoFsOn() || document.fullscreenElement) return;
+    enterFullscreen().catch(armFullscreen);
+  }
+
+  function syncFsUi() {
+    const on = !!document.fullscreenElement;
+    els.fsBtn.textContent = on ? "Esci da schermo intero" : "Schermo intero";
+    if (on) disarmFullscreen();
+  }
+  document.addEventListener("fullscreenchange", () => {
+    syncFsUi();
+    // se l'utente esce volontariamente con Esc, non lo rimetto in automatico
+    if (!document.fullscreenElement && showingLive) disarmFullscreen();
+  });
 
   /* ------------------------------------------------------------ */
   /* Signaling + WebRTC                                           */
@@ -370,8 +462,22 @@
   els.liveKick.addEventListener("click", kick);
 
   els.fsBtn.addEventListener("click", () => {
-    if (document.fullscreenElement) document.exitFullscreen();
-    else els.stage.requestFullscreen?.().catch(() => {});
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else enterFullscreen().catch(() => {});
+  });
+  els.video.addEventListener("dblclick", () => els.fsBtn.click());
+  document.addEventListener("keydown", (e) => {
+    if (showingLive && (e.key === "f" || e.key === "F") && !e.ctrlKey && !e.metaKey)
+      els.fsBtn.click();
+  });
+
+  els.fsAuto.checked = autoFsOn();
+  els.fsAuto.addEventListener("change", () => {
+    try {
+      localStorage.setItem(FS_KEY, els.fsAuto.checked ? "1" : "0");
+    } catch {
+      /* ignoro */
+    }
   });
 
   refresh();

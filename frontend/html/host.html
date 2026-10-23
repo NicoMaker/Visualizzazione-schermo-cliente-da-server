@@ -124,6 +124,9 @@
         </div>
         <div class="tb-group">
           <span class="muted" id="liveStats"></span>
+          <label class="fs-auto" title="Entra da solo in schermo intero quando il cliente condivide">
+            <input type="checkbox" id="fsAuto" checked /> Schermo intero auto
+          </label>
           <button id="fsBtn" class="btn ghost" type="button">
             Schermo intero
           </button>
@@ -134,6 +137,9 @@
       </header>
       <div class="stage" id="stage">
         <video id="remote" autoplay playsinline muted></video>
+        <button id="fsPrompt" class="fs-prompt" type="button" hidden>
+          Clicca ovunque per passare a schermo intero
+        </button>
       </div>
     </section>
     <script src="/static/js/host.js"></script>
