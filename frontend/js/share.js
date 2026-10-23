@@ -55,7 +55,7 @@
       : "Condividi il tuo schermo";
     els.lead.innerHTML = live
       ? "Il tecnico vede <strong>solo</strong> ciò che hai scelto di condividere. Non può controllare il tuo computer."
-      : "Il tecnico potrà <strong>vedere</strong> lo schermo o la finestra che sceglierai tu. Non potrà muovere il mouse né usare la tastiera.";
+      : "Il tecnico potrà <strong>vedere</strong> il tuo schermo. Non potrà muovere il mouse né usare la tastiera.";
 
     if (!live) {
       status(
@@ -291,16 +291,38 @@
     message("");
     els.start.disabled = true;
     try {
-      stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: { ideal: cfg.maxFps, max: cfg.maxFps } },
+      // Chiedo sempre l'INTERO SCHERMO: il browser mostra la scelta già
+      // posizionata su "Schermo intero", al cliente basta confermare con "Condividi".
+      const opts = {
+        video: {
+          frameRate: { ideal: cfg.maxFps, max: cfg.maxFps },
+          displaySurface: "monitor",
+        },
         audio: false,
-      });
+        monitorTypeSurfaces: "include",
+        selfBrowserSurface: "exclude",
+        surfaceSwitching: "exclude",
+        systemAudio: "exclude",
+      };
+      try {
+        stream = await navigator.mediaDevices.getDisplayMedia(opts);
+      } catch (e) {
+        // browser che non accetta le opzioni extra: riprovo con quelle base
+        if (e && (e.name === "TypeError" || e.name === "OverconstrainedError")) {
+          stream = await navigator.mediaDevices.getDisplayMedia({
+            video: { frameRate: { ideal: cfg.maxFps, max: cfg.maxFps } },
+            audio: false,
+          });
+        } else {
+          throw e;
+        }
+      }
     } catch (err) {
       stream = null;
       els.start.disabled = false;
       if (err && err.name === "NotAllowedError") {
         message(
-          "Condivisione annullata. Premi di nuovo il pulsante e scegli cosa condividere.",
+          "Condivisione annullata. Premi di nuovo il pulsante e poi \"Condividi\".",
         );
       } else {
         message(
